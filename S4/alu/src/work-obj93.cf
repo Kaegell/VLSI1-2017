@@ -1,0 +1,4 @@
+v 4
+file . "alu.vhdl" "2f6f83daf343b0c1e467d3be408a329fe8a06273" "20171011195152.635":
+  entity alu at 1( 0) + 0 on 11;
+  architecture alu of alu at 22( 426) + 0 on 12;

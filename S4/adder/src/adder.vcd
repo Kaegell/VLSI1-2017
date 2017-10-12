@@ -1,0 +1,21 @@
+$date
+  Wed Oct 11 19:12:53 2017
+$end
+$version
+  GHDL v0
+$end
+$timescale
+  1 fs
+$end
+$var reg 4 ! a[3:0] $end
+$var reg 4 " b[3:0] $end
+$var reg 4 # o[3:0] $end
+$var reg 1 $ c $end
+$scope module add1 $end
+$var reg 4 % i0[3:0] $end
+$var reg 4 & i1[3:0] $end
+$var reg 4 ' q[3:0] $end
+$var reg 1 ( ovf $end
+$var reg 5 ) add[4:0] $end
+$upscope $end
+$enddefinitions $end

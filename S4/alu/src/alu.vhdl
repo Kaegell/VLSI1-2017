@@ -17,7 +17,7 @@ ENTITY Alu IS
 
 		vdd		: IN	BIT;
 		vss		: IN	BIT);
-END Alu;
+END ENTITY;
 
 ARCHITECTURE Alu OF Alu IS
 	SIGNAL res_sig :	STD_LOGIC_VECTOR (32 DOWNTO 0);
@@ -30,9 +30,9 @@ BEGIN
 
 	res_sig <= STD_LOGIC_VECTOR (SIGNED(op1_sig) + 
 			   SIGNED(op2_sig) + (""&cin))			WHEN cmd = "00" ELSE
-				op1		AND		op2					WHEN cmd = "01" ELSE
-				op1		OR		op2					WHEN cmd = "10" ELSE
-				op1		XOR		op2					WHEN cmd = "11";
+				op1_sig		AND		op2_sig			WHEN cmd = "01" ELSE
+				op1_sig		OR		op2_sig			WHEN cmd = "10" ELSE
+				op1_sig		XOR		op2_sig			WHEN cmd = "11";
 
 	cout	<= res_sig (32) WHEN cmd = "00";
 	res		<= res_sig (31 DOWNTO 0);

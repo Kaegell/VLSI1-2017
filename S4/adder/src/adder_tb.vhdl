@@ -1,46 +1,46 @@
-LIBRARY ieee;
-USE ieee.numeric_std.all;
-USE ieee.std_logic_1164.all;
+LIBRARY IEEE;
+USE IEEE.NUMERIC_STD.ALL;
+USE IEEE.STD_LOGIC_1164.ALL;
 
 ENTITY adder_tb IS
 END ENTITY;
 
 
-ARCHITECTURE bench_arch OF adder_tb IS
-	SIGNAL a	:		std_logic_vector (3 downto 0);
-	SIGNAL b	:		std_logic_vector (3 downto 0);
-	SIGNAL o	:		std_logic_vector (3 downto 0);
-	SIGNAL c	:		std_logic;
+ARCHITECTURE adder_tb OF adder_tb IS
+	SIGNAL i0	:		STD_LOGIC_VECTOR (3 DOWNTO 0);
+	SIGNAL i1	:		STD_LOGIC_VECTOR (3 DOWNTO 0);
+	SIGNAL q	:		STD_LOGIC_VECTOR (3 DOWNTO 0);
+	SIGNAL ovf	:		STD_LOGIC;
 
-	COMPONENT adder IS
+	COMPONENT Adder IS
 		PORT (
-		i0,i1	:	IN	std_logic_vector (3 downto 0);
-		q		:	OUT std_logic_vector (3 downto 0);
-		ovf		:	OUT std_logic);
+		i0,i1	:	IN	STD_LOGIC_VECTOR (3 DOWNTO 0);
+		q		:	OUT STD_LOGIC_VECTOR (3 DOWNTO 0);
+		ovf		:	OUT STD_LOGIC);
 	END COMPONENT;
 BEGIN
-	ADD1		:	adder PORT MAP(
-					i0 =>  a,
-					i1 =>  b,
-					q  =>  o,
-					ovf=> c);
+	ADD1		:	Adder PORT MAP(
+					i0 => i0,
+					i1 => i1,
+					q  => q,
+					ovf=> ovf);
 	PROCESS
-		VARIABLE str_a : STRING (1 to 2);
-		VARIABLE str_b : STRING (1 to 2);
 	BEGIN
 		REPORT "STARTING TEST BENCH";
-		a <= "0000";
-		b <= "0000";
+		i0 <= "0000";
+		i1 <= "0000";
+		WAIT FOR 5 ns;
 		FOR i IN 0 TO 15 LOOP
 			FOR j IN 0 TO 15 LOOP
-				a <= std_logic_vector(TO_UNSIGNED(i,a'LENGTH));
-				b <= std_logic_vector(TO_UNSIGNED(j,b'LENGTH));
-				str_a := INTEGER'IMAGE(TO_INTEGER(UNSIGNED(a)));
-				str_b := INTEGER'IMAGE(TO_INTEGER(UNSIGNED(b)));
-				ASSERT c = '1' REPORT "OVERFLOW " & str_a & " + " & str_b;
+				REPORT "/********** IT" & INTEGER'IMAGE(i+j) & "*********/";
+				i0 <= STD_LOGIC_VECTOR(TO_UNSIGNED(i,i0'LENGTH));
+				i1 <= STD_LOGIC_VECTOR(TO_UNSIGNED(j,i1'LENGTH));
+				REPORT "i0 = " & INTEGER'IMAGE(TO_INTEGER(UNSIGNED(i0)));
+				REPORT "i1 = " & INTEGER'IMAGE(TO_INTEGER(UNSIGNED(i1)));
+				ASSERT ovf = '0' REPORT "OVERFLOW ";
 				WAIT FOR 5 ns;
 			END LOOP;
 		END LOOP;
 		WAIT;
 	END PROCESS;
-END bench_arch;
+END adder_tb;

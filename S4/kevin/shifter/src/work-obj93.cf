@@ -1,4 +1,0 @@
-v 4
-file . "shifter.vhdl" "7ae8c5f618fa5e1f866a82bea05258c203784f16" "20171024064650.856":
-  entity shifter at 1( 0) + 0 on 35;
-  architecture shifter of shifter at 23( 476) + 0 on 36;

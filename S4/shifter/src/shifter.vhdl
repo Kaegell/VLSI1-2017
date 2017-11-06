@@ -3,19 +3,23 @@ USE IEEE.NUMERIC_STD.ALL;
 USE IEEE.STD_LOGIC_1164.ALL;
 
 ENTITY Shifter IS
-	PORT(shift_lsl	: IN	STD_LOGIC;
+	PORT(
+	-- Commands
+		shift_lsl	: IN	STD_LOGIC;
 		shift_lsr	: IN	STD_LOGIC;
 		shift_asr	: IN	STD_LOGIC;
 		shift_ror	: IN	STD_LOGIC;
 		shift_rrx	: IN	STD_LOGIC;
 		shift_val	: IN	STD_LOGIC_VECTOR (4 DOWNTO 0);
 		
+	-- Data in/out
 		din			: IN	STD_LOGIC_VECTOR (31 DOWNTO 0);
 		cin			: IN	STD_LOGIC;
 	
 		dout		: OUT	STD_LOGIC_VECTOR (31 DOWNTO 0);
 		cout		: OUT	STD_LOGIC;
 
+	-- Voltage representation
 		vdd			: IN BIT;
 		vss			: IN BIT);
 END ENTITY;

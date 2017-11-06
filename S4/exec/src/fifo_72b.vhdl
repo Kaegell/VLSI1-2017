@@ -3,21 +3,21 @@ use ieee.std_logic_1164.all;
 
 ENTITY fifo IS
 	PORT(
-		din		: in std_logic_vector(71 downto 0);
+		din			: in std_logic_vector(71 downto 0);
 		dout		: out std_logic_vector(71 downto 0);
 
 		-- commands
 		push		: in std_logic;
-		pop		: in std_logic;
+		pop			: in std_logic;
 
 		-- flags
 		full		: out std_logic;
 		empty		: out std_logic;
 
-		reset_n	: in std_logic;
+		reset_n		: in std_logic;
 		ck			: in std_logic;
-		vdd		: in bit;
-		vss		: in bit
+		vdd			: in bit;
+		vss			: in bit
 	);
 END fifo;
 

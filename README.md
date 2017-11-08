@@ -1,11 +1,34 @@
-#Submodule init
 
-# A few rules
+## Branch organization
+    1. Each contributor has their own branch (to prevent merge conflicts)
+    2. Each commit/merge to the branch 'master' shall be discussed beforehand
+    3. Always 'git pull' when checking our on 'master'
 
-	* Each contributor has his own branch (to prevent merge conflicts)
-		- git checkout -b <branch_name>
-	* Each commit to from a branch 'master' needs to be discussed beforehand
-		(with the exceptions of test benches)
-	* Always 'git pull' when checking out on 'master'
+## File arborescence
 
-That's it ;)
+    - build/            Makefiles
+    - bin/              Binaries (from VHDL files but also Asm and C test programs)
+    - doc/              PDFs (ARM documentation, TMEs recap...)
+    - misc/             Miscellaneous files
+    - org/              All documents regarging the project's organization and avancement
+    - src/              VHDL source code
+    - test/             C and Asm test programs' source code
+
+### File arborescence in src/
+
+    The file arborescence shall be equivalent to the entity/instance arborescence,
+    that means an imbrication level in the entity/instance arborescence is equivalent
+    to an imbrication level within the file arborescence.
+
+    Hence the rules :
+    - One entity (and architecture) = one file
+    - If entity A is instanciated within entity B, the arborescence shall be
+      - a/
+        - a.vhdl
+        - b/
+          - b.vhdl
+
+## Long-term workflow
+
+    **Check org/ to have a look at what's already been done and what's yet to do**
+

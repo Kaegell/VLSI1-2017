@@ -23,6 +23,7 @@
     Hence the rules :
     - One entity (and architecture) = one file
     - Each entity foo.vhdl in within an eponyme directory foo/
+    - The name for the testbench shall be foo_tb.vhdl
     - This directory foo/ contains foo.vhdl and also directories of all entites
       instanciated in foo.vhdl
     - If an entity toto is instanciated in several entities a, b and c,

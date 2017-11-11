@@ -65,6 +65,8 @@ entity EXec is
 			exe_mem_sb		: out Std_Logic;
 
 			exe2mem_empty	: out Std_logic;
+			exe2mem_full	: out Std_logic;
+			exe_push		: in Std_logic;
 			mem_pop			: in Std_logic;
 
 	-- global interface
@@ -77,79 +79,138 @@ end EXec;
 ----------------------------------------------------------------------
 
 architecture Behavior OF EXec is
+	SIGNAL alu_op1_sig	: STD_LOGIC_VECTOR (31 DOWNTO 0);
+	SIGNAL alu_op2_sig	: STD_LOGIC_VECTOR (31 DOWNTO 0);
+	SIGNAL shift_op2_sig: STD_LOGIC_VECTOR (31 DOWNTO 0);
 
-component alu
-    port ( op1			: in Std_Logic_Vector(31 downto 0);
-           op2			: in Std_Logic_Vector(31 downto 0);
-           cin			: in Std_Logic;
+	component Alu
+		port ( op1			: in Std_Logic_Vector(31 downto 0);
+			   op2			: in Std_Logic_Vector(31 downto 0);
+			   cin			: in Std_Logic;
 
-           cmd			: in Std_Logic_Vector(1 downto 0);
+			   cmd			: in Std_Logic_Vector(1 downto 0);
 
-           res			: out Std_Logic_Vector(31 downto 0);
-           cout		: out Std_Logic;
-           z			: out Std_Logic;
-           n			: out Std_Logic;
-           v			: out Std_Logic;
-			  
-			  vdd			: in bit;
-			  vss			: in bit);
-end component;
+			   res			: out Std_Logic_Vector(31 downto 0);
+			   cout		: out Std_Logic;
+			   z			: out Std_Logic;
+			   n			: out Std_Logic;
+			   v			: out Std_Logic;
+				  
+				  vdd			: in bit;
+				  vss			: in bit);
+	end component;
 
-component fifo_72b
-	port(
-		din		: in std_logic_vector(71 downto 0);
-		dout		: out std_logic_vector(71 downto 0);
+	COMPONENT Shifter
+		PORT (
+			shift_lsl	: IN	STD_LOGIC;
+			shift_lsr	: IN	STD_LOGIC;
+			shift_asr	: IN	STD_LOGIC;
+			shift_ror	: IN	STD_LOGIC;
+			shift_rrx	: IN	STD_LOGIC;
+			shift_val	: IN	STD_LOGIC_VECTOR (4 DOWNTO 0);
+			
+		-- Data in/out
+			din			: IN	STD_LOGIC_VECTOR (31 DOWNTO 0);
+			cin			: IN	STD_LOGIC;
+		
+			dout		: OUT	STD_LOGIC_VECTOR (31 DOWNTO 0);
+			cout		: OUT	STD_LOGIC;
 
-		-- commands
-		push		: in std_logic;
-		pop		: in std_logic;
+		-- Voltage representation
+			vdd			: IN BIT;
+			vss			: IN BIT);
+	END COMPONENT;
 
-		-- flags
-		full		: out std_logic;
-		empty		: out std_logic;
+	component fifo_72b
+		port(
+			din		: in std_logic_vector(71 downto 0);
+			dout		: out std_logic_vector(71 downto 0);
 
-		reset_n	: in std_logic;
-		ck			: in std_logic;
-		vdd		: in bit;
-		vss		: in bit
-	);
-end component;
+			-- commands
+			push		: in std_logic;
+			pop		: in std_logic;
+
+			-- flags
+			full		: out std_logic;
+			empty		: out std_logic;
+
+			reset_n	: in std_logic;
+			ck			: in std_logic;
+			vdd		: in bit;
+			vss		: in bit
+		);
+	end component;
 
 
+BEGIN
 
---  Component instantiation.
-	alu_inst : alu
-	port map (	
-					vss		 => vss);
+	--  Component instantiation.
+		shifter_inst : Shifter
+		PORT MAP (
+			shift_lsl	=> dec_shift_lsl,
+			shift_lsr	=> dec_shift_lsr,
+			shift_asr	=> dec_shift_asr,
+			shift_ror	=> dec_shift_ror,
+			shift_rrx	=> dec_shift_rrx,
+			shift_val	=> dec_shift_val,
 
-	exec2mem : fifo_72b
-	port map (	din(71)	 => dec_mem_lw,
-					din(70)	 => dec_mem_lb,
-					din(69)	 => dec_mem_sw,
-					din(68)	 => dec_mem_sb,
+			din			=> dec_op2,
+			cin			=> dec_cy,
+		
+			dout		=> shift_op2_sig);
 
-					din(67 downto 64) => dec_mem_dest,
-					din(63 downto 32) => dec_mem_data,
-					din(31 downto 0)	 => mem_adr,
+		alu_inst : Alu
+		PORT MAP (
+			op1		=> alu_op1_sig,
+			op2		=> alu_op2_sig,
+			cin		=> dec_alu_cy,
 
-					dout(71)	 => exe_mem_lw,
-					dout(70)	 => exe_mem_lb,
-					dout(69)	 => exe_mem_sw,
-					dout(68)	 => exe_mem_sb,
+			cmd		=> dec_alu_cmd,
 
-					dout(67 downto 64) => exe_mem_dest,
-					dout(63 downto 32) => exe_mem_data,
-					dout(31 downto 0)	 => exe_mem_adr,
+			res		=> exe_res,
+			cout	=> exe_c,
+			z		=> exe_z,
+			n		=> exe_n,
+			v		=> exe_v,
+			
+			vss		=> vss,
+			vdd		=> vdd);
 
-					push		 => exe_push,
-					pop		 => mem_pop,
+		exec2mem : fifo_72b
+		port map (	din(71)	 => dec_mem_lw,
+						din(70)	 => dec_mem_lb,
+						din(69)	 => dec_mem_sw,
+						din(68)	 => dec_mem_sb,
 
-					empty		 => exe2mem_empty,
-					full		 => exe2mem_full,
+						din(67 downto 64) => dec_mem_dest,
+						din(63 downto 32) => dec_mem_data,
+						din(31 downto 0)	 => exe_mem_adr,
 
-					reset_n	 => reset_n,
-					ck			 => ck,
-					vdd		 => vdd,
-					vss		 => vss);
+						dout(71)	 => exe_mem_lw,
+						dout(70)	 => exe_mem_lb,
+						dout(69)	 => exe_mem_sw,
+						dout(68)	 => exe_mem_sb,
 
-end Behavior;
+						dout(67 downto 64) => exe_mem_dest,
+						dout(63 downto 32) => exe_mem_data,
+						dout(31 downto 0)	 => exe_mem_adr,
+
+						push		 => exe_push,
+						pop		 => mem_pop,
+
+						empty		 => exe2mem_empty,
+						full		 => exe2mem_full,
+
+						reset_n	 => reset_n,
+						ck			 => ck,
+						vdd		 => vdd,
+						vss		 => vss);
+
+	WITH dec_comp_op1 SELECT alu_op1_sig <=
+		NOT dec_op1 WHEN '1',
+		dec_op1		WHEN '0';
+
+	WITH dec_comp_op2 SELECT alu_op2_sig <=
+		NOT shift_op2_sig	WHEN '1',
+		shift_op2_sig		WHEN '0';
+END Behavior;

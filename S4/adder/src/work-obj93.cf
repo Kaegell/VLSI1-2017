@@ -1,7 +1,0 @@
-v 4
-file . "adder.vhdl" "7aabb2d7dbfd96335087fab8a909357a6ace8824" "20171012153141.494":
-  entity adder at 1( 0) + 0 on 21;
-  architecture adder of adder at 12( 216) + 0 on 22;
-file . "adder_tb.vhdl" "57a22096322b3a1dff0cc78e48e0d793dfe55d7f" "20171012153927.016":
-  entity adder_tb at 1( 0) + 0 on 27;
-  architecture adder_tb of adder_tb at 9( 103) + 0 on 28;

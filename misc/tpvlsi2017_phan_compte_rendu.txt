@@ -1,0 +1,68 @@
+
+VLSI
+Master SESI
+VLSI - TME4 - Compte-Rendu
+Nicolas Phan (3413511)
+Groupe 1
+2017 / 2018
+
+EXERCICE 1
+
+Q1. Graphiquement, ID commence à être non négligeable pour Vgs = 0,6V
+    Donc Vth = 0,6V
+
+EXERCICE 2
+
+Q1. Graphiquement, la courbe Vout=f(Vin) coupe la fonction identité en V = 1,4V
+    On a donc Vseuil = 1,4V différent de Vdd/2 = 1,65V
+    donc l'inverseur n'est pas équilibré.
+    (c.f. exo2_q1.png)
+
+Q2. En faisant un STEP sur Wp, on trouve Vseuil = Vdd/2 pour Wp = 4e-6 m
+    (c.f. exo2_q2.png)
+
+EXERCICE 3
+
+Q1. Temps de commutation high->low et low->high en fonction de C :
+    (c.f. exo3_q1.png)
+
+    C [pF]      tau high->low [ns]   tau low->high [ns]
+
+      0         0.25                 0.29
+     10         0.31                 0.35
+     20         0.35                 0.39
+     30         0.38                 0.42
+     40         0.41                 0.45
+     50         0.44                 0.48
+     60         0.46                 0.50
+     70         0.49                 0.53
+     80         0.51                 0.55
+     90         0.53                 0.58
+    100         0.55                 0.60
+
+EXERCICE 4
+
+Q1. (c.f. exo4_q1.png)
+
+Q2. L'insertion d'un buffer maintient le temps de commutation à 0.5 ns environ,
+    le buffer est donc utile à partir du moment ou la capacité de charge
+    est telle que le temps de commutation dépasse 0.50 ns, et on commence
+    à dépasser 0.50 ns à partir de C = 80fF.
+    (c.f. exo4_q2.png)
+
+Q3. Expérimentalement, en remplacant la capacité de 80fF par 20 inverseurs,
+    le délai de commutation est le même donc les capacités équivalentes
+    sont les mêmes.
+    Donc une charge de 80 fF correspond à 20 inverseurs parallèle en sortie.
+    (c.f. exo4_q3.png)
+
+EXERCICE 5
+
+Q1. Les délais de transition dans les circuits logiques ne dépendent pas que
+    des effets capacitifs C mais aussi des effets résistifs R,
+    et on considère notamment la constant RC pour définir ces délais.
+    Lorsqu'on ne met pas de résistance, R = Rfil la résistance des fils/pistes
+    mais si on ajoute une résistance, R augmente donc RC augmente
+    donc le délai de commutation augmente.
+    (c.f. exo5_q1-1.png et exo5_q1-2.png)
+

@@ -1,155 +1,227 @@
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.ALL;
+USE IEEE.NUMERIC_STD.ALL;
 
-entity EXec is
-	port(
-	-- Decode interface synchro
-			dec2exe_empty	: in Std_logic;
-			exe_pop			: out Std_logic;
+ENTITY Exec IS
+    PORT (
+    -- DECOD Interface
+    -- -- synchronization
+             dec2exe_empty	: IN	STD_LOGIC;
+             exe_pop			: OUT	STD_LOGIC;
 
-	-- Decode interface operands
-			dec_op1			: in Std_Logic_Vector(31 downto 0); -- first alu input
-			dec_op2			: in Std_Logic_Vector(31 downto 0); -- shifter input
-			dec_exe_dest	: in Std_Logic_Vector(3 downto 0); -- Rd destination
-			dec_exe_wb		: in Std_Logic; -- Rd destination write back
-			dec_flag_wb		: in Std_Logic; -- CSPR modifiy
+    -- -- operands
+             dec_op1			: IN STD_LOGIC_VECTOR (31 DOWNTO 0);
+             dec_op2			: IN STD_LOGIC_VECTOR (31 DOWNTO 0);
+             dec_exe_dest	: IN STD_LOGIC_VECTOR (3 DOWNTO 0); 
+             dec_exe_wb		: IN STD_LOGIC;
+             dec_flag_wb		: IN STD_LOGIC;
 
-	-- Decode to mem interface 
-			dec_mem_data	: in Std_Logic_Vector(31 downto 0); -- data to MEM W
-			dec_mem_dest	: in Std_Logic_Vector(3 downto 0); -- Destination MEM R
-			dec_pre_index 	: in Std_logic;
+    -- DEC2MEM interface
+             dec_mem_data	: IN STD_LOGIC_VECTOR (31 DOWNTO 0);
+             dec_mem_dest	: IN STD_LOGIC_VECTOR (3 DOWNTO 0);
+             dec_pre_index 	: IN STD_LOGIC;
 
-			dec_mem_lw		: in Std_Logic;
-			dec_mem_lb		: in Std_Logic;
-			dec_mem_sw		: in Std_Logic;
-			dec_mem_sb		: in Std_Logic;
+    -- -- Memory format flags
+             dec_mem_lw		: IN STD_LOGIC;
+             dec_mem_lb		: IN STD_LOGIC;
+             dec_mem_sw		: IN STD_LOGIC;
+             dec_mem_sb		: IN STD_LOGIC;
 
-	-- Shifter command
-			dec_shift_lsl	: in Std_Logic;
-			dec_shift_lsr	: in Std_Logic;
-			dec_shift_asr	: in Std_Logic;
-			dec_shift_ror	: in Std_Logic;
-			dec_shift_rrx	: in Std_Logic;
-			dec_shift_val	: in Std_Logic_Vector(4 downto 0);
-			dec_cy			: in Std_Logic;
+    -- Shifter commands
+             dec_shift_lsl	: IN STD_LOGIC;
+             dec_shift_lsr	: IN STD_LOGIC;
+             dec_shift_asr	: IN STD_LOGIC;
+             dec_shift_ror	: IN STD_LOGIC;
+             dec_shift_rrx	: IN STD_LOGIC;
+             dec_shift_val	: IN STD_LOGIC_VECTOR (4 DOWNTO 0);
+             dec_cy			: IN STD_LOGIC;
 
-	-- Alu operand selection
-			dec_comp_op1	: in Std_Logic;
-			dec_comp_op2	: in Std_Logic;
-			dec_alu_cy 		: in Std_Logic;
+    -- Alu operand selection
+             dec_comp_op1	: IN STD_LOGIC;
+             dec_comp_op2	: IN STD_LOGIC;
+             dec_alu_cy 		: IN STD_LOGIC;
 
-	-- Alu command
-			dec_alu_cmd		: in Std_Logic_Vector(1 downto 0);
+    -- Alu command
+             dec_alu_cmd		: IN STD_LOGIC_VECTOR (1 DOWNTO 0);
 
-	-- Exe bypass to decod
-			exe_res			: out Std_Logic_Vector(31 downto 0);
+    -- Exe bypass to decod
+             exe_res			: OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+             exe_c			: OUT STD_LOGIC;
+             exe_v			: OUT STD_LOGIC;
+             exe_n			: OUT STD_LOGIC;
+             exe_z			: OUT STD_LOGIC;
 
-			exe_c				: out Std_Logic;
-			exe_v				: out Std_Logic;
-			exe_n				: out Std_Logic;
-			exe_z				: out Std_Logic;
+             exe_dest		: OUT STD_LOGIC_VECTOR (3 DOWNTO 0);
+             exe_wb			: OUT STD_LOGIC; -- Write To Register
+             exe_flag_wb		: OUT STD_LOGIC; -- CSPR modifiy
 
-			exe_dest			: out Std_Logic_Vector(3 downto 0); -- Rd destination
-			exe_wb			: out Std_Logic; -- Rd destination write back
-			exe_flag_wb		: out Std_Logic; -- CSPR modifiy
+    -- MEM Interface
 
-	-- Mem interface
-			exe_mem_adr		: out Std_Logic_Vector(31 downto 0); -- Alu res register
-			exe_mem_data	: out Std_Logic_Vector(31 downto 0);
-			exe_mem_dest	: out Std_Logic_Vector(3 downto 0);
+             exe_mem_adr		: INOUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+             exe_mem_data	: OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+             exe_mem_dest	: OUT STD_LOGIC_VECTOR(3 DOWNTO 0);
 
-			exe_mem_lw		: out Std_Logic;
-			exe_mem_lb		: out Std_Logic;
-			exe_mem_sw		: out Std_Logic;
-			exe_mem_sb		: out Std_Logic;
+             exe_mem_lw		: OUT STD_LOGIC;
+             exe_mem_lb		: OUT STD_LOGIC;
+             exe_mem_sw		: OUT STD_LOGIC;
+             exe_mem_sb		: OUT STD_LOGIC;
 
-			exe2mem_empty	: out Std_logic;
-			mem_pop			: in Std_logic;
+             exe2mem_empty	: OUT STD_LOGIC;
+             exe2mem_full	: OUT STD_LOGIC;
+             exe_push		: IN STD_LOGIC;
+             mem_pop			: IN STD_LOGIC;
 
-	-- global interface
-			ck					: in Std_logic;
-			reset_n			: in Std_logic;
-			vdd				: in bit;
-			vss				: in bit);
-end EXec;
+    -- global interface
+             ck					: in Std_logic;
+             reset_n			: in Std_logic;
+             vdd				: in bit;
+             vss				: in bit);
+END ENTITY;
 
-----------------------------------------------------------------------
+Architecture Exec OF Exec IS
+    SIGNAL alu_op1_sig	: STD_LOGIC_VECTOR (31 DOWNTO 0);
+    SIGNAL alu_op2_sig	: STD_LOGIC_VECTOR (31 DOWNTO 0);
+    SIGNAL exe_mem_adr_sig : STD_LOGIC_VECTOR (31 DOWNTO 0);
+    SIGNAL shift_op2_sig: STD_LOGIC_VECTOR (31 DOWNTO 0);
 
-architecture Behavior OF EXec is
+    COMPONENT Alu
+        PORT (
+        -- Data in
+                 op1			: in Std_Logic_Vector(31 downto 0);
+                 op2			: in Std_Logic_Vector(31 downto 0);
+                 cin			: in Std_Logic;
 
-component alu
-    port ( op1			: in Std_Logic_Vector(31 downto 0);
-           op2			: in Std_Logic_Vector(31 downto 0);
-           cin			: in Std_Logic;
+        -- Command(s)
+                 cmd			: in Std_Logic_Vector(1 downto 0);
 
-           cmd			: in Std_Logic_Vector(1 downto 0);
+        -- Data out
+                 res			: out Std_Logic_Vector(31 downto 0);
+                 cout		: out Std_Logic;
+                 z			: out Std_Logic;
+                 n			: out Std_Logic;
+                 v			: out Std_Logic;
 
-           res			: out Std_Logic_Vector(31 downto 0);
-           cout		: out Std_Logic;
-           z			: out Std_Logic;
-           n			: out Std_Logic;
-           v			: out Std_Logic;
-			  
-			  vdd			: in bit;
-			  vss			: in bit);
-end component;
+                 vdd			: in bit;
+                 vss			: in bit);
+    END COMPONENT;
 
-component fifo_72b
-	port(
-		din		: in std_logic_vector(71 downto 0);
-		dout		: out std_logic_vector(71 downto 0);
+    COMPONENT Shifter
+        PORT (
+        -- Commands
+                 shift_lsl	: IN	STD_LOGIC;
+                 shift_lsr	: IN	STD_LOGIC;
+                 shift_asr	: IN	STD_LOGIC;
+                 shift_ror	: IN	STD_LOGIC;
+                 shift_rrx	: IN	STD_LOGIC;
+                 shift_val	: IN	STD_LOGIC_VECTOR (4 DOWNTO 0);
 
-		-- commands
-		push		: in std_logic;
-		pop		: in std_logic;
+        -- Data in/out
+                 din			: IN	STD_LOGIC_VECTOR (31 DOWNTO 0);
+                 cin			: IN	STD_LOGIC;
 
-		-- flags
-		full		: out std_logic;
-		empty		: out std_logic;
+                 dout		: OUT	STD_LOGIC_VECTOR (31 DOWNTO 0);
+                 cout		: OUT	STD_LOGIC;
 
-		reset_n	: in std_logic;
-		ck			: in std_logic;
-		vdd		: in bit;
-		vss		: in bit
-	);
-end component;
+        -- Voltage representation
+                 vdd			: IN BIT;
+                 vss			: IN BIT);
+    END COMPONENT;
+
+    COMPONENT fifo_72b
+        PORT (
+                 din			: IN STD_LOGIC_VECTOR (71 DOWNTO 0);
+                 dout		: OUT STD_LOGIC_VECTOR (71 DOWNTO 0);
+
+        -- commands
+                 push		: IN STD_LOGIC;
+                 pop			: IN STD_LOGIC;
+
+        -- flags
+                 full		: OUT STD_LOGIC;
+                 empty		: OUT STD_LOGIC;
+
+                 reset_n		: IN STD_LOGIC;
+                 ck			: IN STD_LOGIC;
+
+        -- Voltage representation
+                 vdd			: IN BIT;
+                 vss			: IN BIT);
+    END COMPONENT;
 
 
+BEGIN
 
---  Component instantiation.
-	alu_inst : alu
-	port map (	
-					vss		 => vss);
+        --  Component instantiation.
+    shifter_inst : Shifter
+    PORT MAP (
+                 shift_lsl	=> dec_shift_lsl,
+                 shift_lsr	=> dec_shift_lsr,
+                 shift_asr	=> dec_shift_asr,
+                 shift_ror	=> dec_shift_ror,
+                 shift_rrx	=> dec_shift_rrx,
+                 shift_val	=> dec_shift_val,
 
-	exec2mem : fifo_72b
-	port map (	din(71)	 => dec_mem_lw,
-					din(70)	 => dec_mem_lb,
-					din(69)	 => dec_mem_sw,
-					din(68)	 => dec_mem_sb,
+                 din			=> dec_op2,
+                 cin			=> dec_cy,
 
-					din(67 downto 64) => dec_mem_dest,
-					din(63 downto 32) => dec_mem_data,
-					din(31 downto 0)	 => mem_adr,
+                 dout		=> shift_op2_sig);
 
-					dout(71)	 => exe_mem_lw,
-					dout(70)	 => exe_mem_lb,
-					dout(69)	 => exe_mem_sw,
-					dout(68)	 => exe_mem_sb,
+    alu_inst : Alu
+    PORT MAP (
+                 op1		=> alu_op1_sig,
+                 op2		=> alu_op2_sig,
+                 cin		=> dec_alu_cy,
 
-					dout(67 downto 64) => exe_mem_dest,
-					dout(63 downto 32) => exe_mem_data,
-					dout(31 downto 0)	 => exe_mem_adr,
+                 cmd		=> dec_alu_cmd,
 
-					push		 => exe_push,
-					pop		 => mem_pop,
+                 res		=> exe_res,
+                 cout	=> exe_c,
+                 z		=> exe_z,
+                 n		=> exe_n,
+                 v		=> exe_v,
 
-					empty		 => exe2mem_empty,
-					full		 => exe2mem_full,
+                 vss		=> vss,
+                 vdd		=> vdd);
 
-					reset_n	 => reset_n,
-					ck			 => ck,
-					vdd		 => vdd,
-					vss		 => vss);
+    exec2mem : fifo_72b
+    PORT MAP (
+                 din(71)				=> dec_mem_lw,
+                 din(70)				=> dec_mem_lb,
+                 din(69)				=> dec_mem_sw,
+                 din(68)				=> dec_mem_sb,
 
-end Behavior;
+                 din(67 downto 64)	=> dec_mem_dest,
+                 din(63 downto 32)	=> dec_mem_data,
+                 din(31 downto 0)	=> exe_mem_adr,
+
+                 dout(71)			=> exe_mem_lw,
+                 dout(70)			=> exe_mem_lb,
+                 dout(69)	 		=> exe_mem_sw,
+                 dout(68)	 		=> exe_mem_sb,
+
+                 dout(67 downto 64)	=> exe_mem_dest,
+                 dout(63 downto 32)	=> exe_mem_data,
+                 dout(31 downto 0)	=> exe_mem_adr,
+
+                 push				=> exe_push,
+                 pop					=> mem_pop,
+
+                 empty				=> exe2mem_empty,
+                 full				=> exe2mem_full,
+
+                 reset_n				=> reset_n,
+                 ck					=> ck,
+                 vdd					=> vdd,
+                 vss					=> vss);
+
+    alu_op1_sig <=
+   NOT dec_op1 WHEN dec_comp_op1 = '1'
+    ELSE
+        dec_op1		WHEN dec_comp_op1 = '0';
+
+        alu_op2_sig <=
+       NOT shift_op2_sig	WHEN dec_comp_op2 = '1'
+   ELSE
+       shift_op2_sig		WHEN dec_comp_op2 = '0';
+END ARCHITECTURE;
+

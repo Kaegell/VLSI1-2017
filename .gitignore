@@ -1,0 +1,7 @@
+*.o
+*.swp
+*.swo
+*.cf
+work/
+bin/
+

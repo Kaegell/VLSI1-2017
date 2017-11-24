@@ -168,7 +168,10 @@ BEGIN
                  cin			=> dec_cy,
                  cout       => shifter_cout_sig,
 
-                 dout		=> shift_op2_sig);
+                 dout		=> shift_op2_sig,
+
+                 vdd => vdd,
+                 vss => vss);
 
     alu_inst : Alu
     PORT MAP (

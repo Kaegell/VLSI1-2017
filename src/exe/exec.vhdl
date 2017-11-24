@@ -45,7 +45,7 @@ ENTITY Exec IS
              dec_alu_cmd		: IN STD_LOGIC_VECTOR (1 DOWNTO 0);
 
              -- Exe bypass to decod
-             exe_res			: INOUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+             exe_res			: OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
              exe_c			: OUT STD_LOGIC;
              exe_v			: OUT STD_LOGIC;
              exe_n			: OUT STD_LOGIC;
@@ -85,6 +85,7 @@ Architecture Exec OF Exec IS
     SIGNAL shift_op2_sig: STD_LOGIC_VECTOR (31 DOWNTO 0);
     SIGNAL shifter_cout_sig : STD_LOGIC;
     SIGNAL alu_cout_sig     : STD_LOGIC;
+    SIGNAL alu_res     : STD_LOGIC_VECTOR(31 DOWNTO 0);
 
     COMPONENT Alu
         PORT (
@@ -177,7 +178,7 @@ BEGIN
 
                  cmd		=> dec_alu_cmd,
 
-                 res		=> exe_res,
+                 res		=> alu_res,
                  cout	=> alu_cout_sig,
                  z		=> exe_z,
                  n		=> exe_n,
@@ -220,6 +221,7 @@ BEGIN
     exe_dest <= dec_exe_dest;
     exe_wb <= dec_exe_wb;
     exe_flag_wb <= dec_flag_wb;
+    exe_res <= alu_res;
 
     WITH dec_comp_op1 SELECT
         alu_op1_sig <= NOT dec_op1 WHEN '1',
@@ -236,7 +238,7 @@ BEGIN
                  shifter_cout_sig WHEN others;
 
     WITH dec_pre_index SELECT
-        exe_mem_adr <= exe_res WHEN '0',
+        exe_mem_adr <= alu_res WHEN '0',
                        dec_op1 WHEN '1',
                        x"FFFFFFFF" WHEN others;
     exe_mem_data <= dec_mem_data;

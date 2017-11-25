@@ -122,6 +122,115 @@ begin
       wait for 50 ps;
       ck  <= '1';
     end loop;
+
+    -- =================== Chronogramm 2 : FIFO out is full ====================
+    -- Iniialization
+    reset_n   <= '0';
+    i_pushes  <= '1';
+    empty     <= '0';
+    full      <= '0';
+    ck        <= '0';
+
+    wait for 50 ps;
+    ck        <= '0';
+    wait for 50 ps;
+    ck        <= '1';
+
+    reset_n   <= '1';
+
+    for i in 0 to 30 loop
+      -- Assign chronogram values to variables
+      v_i_pushes := true;
+      v_empty := false;
+      v_full := (i > 2 and i < 13);
+
+      -- Assign variables to signals
+      i_pushes  <= bool_to_logic(v_i_pushes);
+      empty     <= bool_to_logic(v_empty);
+      full      <= bool_to_logic(v_full);
+      reset_n   <= '1';
+
+      -- Clock generation
+      wait for 50 ps;
+      ck  <= '0';
+      wait for 50 ps;
+      ck  <= '1';
+    end loop;
+
+    -- =================== Chronogramm 3 : FIFO in is empty ====================
+    -- Iniialization
+    reset_n   <= '0';
+    i_pushes  <= '1';
+    empty     <= '0';
+    full      <= '0';
+    ck        <= '0';
+
+    wait for 50 ps;
+    ck        <= '0';
+    wait for 50 ps;
+    ck        <= '1';
+
+    reset_n   <= '1';
+
+    for i in 0 to 30 loop
+      -- Assign chronogram values to variables
+      v_i_pushes := true;
+      v_empty := (i > 3 and i < 15);
+      v_full := false;
+
+      -- Assign variables to signals
+      i_pushes  <= bool_to_logic(v_i_pushes);
+      empty     <= bool_to_logic(v_empty);
+      full      <= bool_to_logic(v_full);
+      reset_n   <= '1';
+
+      -- Clock generation
+      wait for 50 ps;
+      ck  <= '0';
+      wait for 50 ps;
+      ck  <= '1';
+    end loop;
+
+    -- =================== Chronogramm 4 : Yet another case of FIFO out full ===============
+    -- Iniialization
+    reset_n   <= '0';
+    i_pushes  <= '1';
+    empty     <= '0';
+    full      <= '0';
+    ck        <= '0';
+
+    wait for 50 ps;
+    ck        <= '0';
+    wait for 50 ps;
+    ck        <= '1';
+
+    reset_n   <= '1';
+
+    for i in 0 to 30 loop
+      -- Assign chronogram values to variables
+      v_i_pushes := ( i = 0
+      or i = 1
+      or i = 2
+      or i = 5
+      or i = 6
+      or i = 1
+      or (i > 9 and i < 18));
+      v_empty := false;
+      v_full := (i > 10 and i < 17);
+
+      -- Assign variables to signals
+      i_pushes  <= bool_to_logic(v_i_pushes);
+      empty     <= bool_to_logic(v_empty);
+      full      <= bool_to_logic(v_full);
+      reset_n   <= '1';
+
+      -- Clock generation
+      wait for 50 ps;
+      ck  <= '0';
+      wait for 50 ps;
+      ck  <= '1';
+    end loop;
+
     wait;
   end process;
 

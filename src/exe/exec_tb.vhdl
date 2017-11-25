@@ -352,7 +352,9 @@ begin
 
         dec_alu_cmd <= std_logic_vector(to_unsigned(v_dec_alu_cmd, dec_alu_cmd'length));
 
+        wait for 100 ps;
         end loop;
+        wait;
     end process;
 
 end arch;

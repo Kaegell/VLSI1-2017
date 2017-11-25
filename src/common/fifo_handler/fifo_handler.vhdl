@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity exec is
+entity fifo_handler is
   port (
          -- intra-stage signals
          i_pushes      : in   std_logic;
@@ -21,7 +21,7 @@ entity exec is
          vss				  : in    bit);
 end entity;
 
-architecture exec of exec is
+architecture arch of fifo_handler is
   signal already_pushed   : std_logic;
   signal must_push        : std_logic;
   signal must_pop         : std_logic;
@@ -36,17 +36,17 @@ begin
 
   -- =========================== Moore State Machine =============================
   ---- Transition combinatory circuit [ next_state = f(cur_state, inputs) ]
-  process(s_push, s_pop)
+  process(s_push, s_pop, i_pushes)
   begin
     case cur_state is
 
       -- NoWait
       when NoWait =>
-        if s_push = '1' and s_pop = '1' then
+        if (i_pushes = '0') or (i_pushes = '1' and s_push = '1' and s_pop = '1') then
           next_state <= NoWait;
-        elsif s_push = '1' and s_pop = '0' then
+        elsif i_pushes = '1' and s_push = '1' and s_pop = '0' then
           next_state <= WaitForPop;
-        else -- s_push = '0'
+        else -- i_pushes = '1' and s_push = '0'
           next_state <= WaitForPush;
         end if;
 

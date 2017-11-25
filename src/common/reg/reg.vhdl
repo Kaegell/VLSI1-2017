@@ -66,7 +66,21 @@ entity Reg is
 		vss			: in bit);
 end Reg;
 
-architecture Behavior OF Reg is
-
-
-end Behavior;
+architecture Reg of Reg is
+	signal registers : array (0 to 15) of std_logic_vector (31 downto 0);
+	signal inval_regs: std_logic_vector (0 downto 15);
+begin
+	process(ck)
+	begin
+		if reset_n = '0' then
+			registers(0 to 15) <= std_logic_vector (31 downto 0, others => '0');
+		elsif rising_edge(ck) then
+			if wen0 = '1' then
+				if wen1 = '1' then
+					registers(unsigned(to_integer(wadr1))) <= wdata1;
+				else
+					registers(unsigned(to_integer(wadr0))) <= wdata0;
+				end if;
+		end process;
+	end process;
+end architecture;

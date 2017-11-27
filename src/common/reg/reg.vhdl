@@ -68,12 +68,13 @@ end Reg;
 
 architecture Reg of Reg is
 	signal registers : array (0 to 15) of std_logic_vector (31 downto 0);
-	signal inval_regs: std_logic_vector (0 downto 15);
+	signal inval_regs: std_logic_vector (0 to 15);
 begin
 	process(ck)
 	begin
 		if reset_n = '0' then
-			registers(0 to 15) <= std_logic_vector (31 downto 0, others => '0');
+			registers(0 to 15) <= array (0 to 15) of std_logic_vector (31 downto 0, others => '0');
+			inval_regs(0 to 15) <= std_logic_vector (0 to 15, others => '1');
 		elsif rising_edge(ck) then
 			if wen0 = '1' then
 				if wen1 = '1' then

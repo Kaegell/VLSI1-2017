@@ -82,37 +82,56 @@ architecture Reg of Reg is
 begin
     process(ck)
     begin
+        -- Invalidate all registers when reset (asynchronously)
         if reset_n = '0' then
             inval_regs(0 to 15) <= (others => '0');
             cry_valid_sig <= '1';
             zero_valid_sig <= '1';
             neg_valid_sig <= '1';
             ovr_valid_sig <= '1';
+
         elsif rising_edge(ck) then
+
+            -- Invalidate registers (from DECOD)
             inval_regs(to_integer(unsigned(inval_adr1)))<= inval1;
             inval_regs(to_integer(unsigned(inval_adr2)))<= inval2;
 
+            -- PC increment operator
             if inval_regs(15) = '1' and inc_pc = '1' then
                 pc_sig <= unsigned(registers(15)) + 4;
                 inval_regs(15) <= '0';
             else
                 pc_sig <= unsigned(registers(15));
             end if;
+
+            -- PC setup and remapping to output
             registers(15) <= std_logic_vector(pc_sig);
             reg_pc <= registers(15);
             reg_pcv <= inval_regs(15);
+
+            -- Rd1 writeback
             reg_rd1 <= registers(to_integer(unsigned(radr1))); 
             reg_v1 <= inval_regs(to_integer(unsigned(radr1)));
+
+            -- Rd2 writeback
             reg_rd2 <= registers(to_integer(unsigned(radr2))); 
             reg_v2 <= inval_regs(to_integer(unsigned(radr2)));
+
+            -- Rd3 writeback
             reg_rd3 <= registers(to_integer(unsigned(radr3))); 
             reg_v3 <= inval_regs(to_integer(unsigned(radr3)));
+
+            -- EXEC/MEM Write-back priority handling
+            -- (if writeback from EXEC, ignore writeback
+            -- from MEM)
             if wen1 = '1' and wadr1 = wadr2 and
             inval_regs(to_integer(unsigned(wadr1))) = '1'
             then
                 registers(to_integer(unsigned(wadr1))) <= wdata1;
                 inval_regs(to_integer(unsigned(wadr1))) <= '0';
             else
+                -- Handle EXEC/MEM Write-back as usual
+                -- (check invalidity register for each Rd)
                 if wen1 = '1' and
                 inval_regs(to_integer(unsigned(wadr1))) = '1'
                 then

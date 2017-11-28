@@ -82,7 +82,7 @@ begin
 
             if inval_regs(15) = '1' and inc_pc = '1' then
                 pc_sig <= std_logic_vector(
-                          to_unsigned(registers(15) + 4,pc_sig'length));
+                          to_integer(unsigned(registers(15)),pc_sig'length)+4);
                 inval_regs(15) <= '0';
             else
                 pc_sig <= registers(15);

@@ -70,7 +70,7 @@ architecture Reg of Reg is
     type REG_array is array (0 to 15) of std_logic_vector (31 downto 0);
 	signal registers : REG_array;
 	signal inval_regs: std_logic_vector (0 to 15);
-    signal pc_sig: std_logic_vector (31 downto 0);
+    signal pc_sig: unsigned (31 downto 0);
 begin
 	process(ck)
 	begin
@@ -81,13 +81,12 @@ begin
             inval_regs(to_integer(unsigned(inval_adr2)))<= inval2;
 
             if inval_regs(15) = '1' and inc_pc = '1' then
-                pc_sig <= std_logic_vector(
-                          to_integer(unsigned(registers(15)),pc_sig'length)+4);
+                pc_sig <= unsigned(registers(15)) + 4;
                 inval_regs(15) <= '0';
             else
-                pc_sig <= registers(15);
+                pc_sig <= unsigned(registers(15));
             end if;
-            registers(15) <= pc_sig;
+            registers(15) <= std_logic_vector(pc_sig);
             reg_pc <= registers(15);
             reg_pcv <= inval_regs(15);
             

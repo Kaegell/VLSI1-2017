@@ -1,12 +1,33 @@
 
 #Entity fifo
-../src/common/fifo.o: ../src/common/fifo.vhdl
-	ghdl -a -v ../src/common/fifo.vhdl
+../src/common/fifo/fifo.o: ../src/common/fifo/reg/reg.o\
+../src/common/fifo/fifo.vhdl
+	ghdl -a -v ../src/common/fifo/fifo.vhdl
 
-../src/common/fifo_tb : ../src/common/fifo.o ../src/common/fifo_tb.vhdl
-	ghdl -a -v ../src/common/fifo_tb.vhdl
+../src/common/fifo/fifo_tb : ../src/common/fifo/fifo.o ../src/common/fifo/fifo_tb.vhdl
+	ghdl -a -v ../src/common/fifo/fifo_tb.vhdl
 	ghdl -e -v fifo_tb
 	mv fifo_tb ../bin/
+
+
+#Entity reg
+../src/common/fifo/reg/reg.o: ../src/common/fifo/reg/reg.vhdl
+	ghdl -a -v ../src/common/fifo/reg/reg.vhdl
+
+../src/common/fifo/reg/reg_tb : ../src/common/fifo/reg/reg.o ../src/common/fifo/reg/reg_tb.vhdl
+	ghdl -a -v ../src/common/fifo/reg/reg_tb.vhdl
+	ghdl -e -v reg_tb
+	mv reg_tb ../bin/
+
+
+#Entity fifo_handler
+../src/common/fifo_handler/fifo_handler.o: ../src/common/fifo_handler/fifo_handler.vhdl
+	ghdl -a -v ../src/common/fifo_handler/fifo_handler.vhdl
+
+../src/common/fifo_handler/fifo_handler_tb : ../src/common/fifo_handler/fifo_handler.o ../src/common/fifo_handler/fifo_handler_tb.vhdl
+	ghdl -a -v ../src/common/fifo_handler/fifo_handler_tb.vhdl
+	ghdl -e -v fifo_handler_tb
+	mv fifo_handler_tb ../bin/
 
 
 #Entity exec

@@ -1,12 +1,23 @@
 
 #Entity fifo
-../src/common/fifo.o: ../src/common/fifo.vhdl
+../src/common/fifo.o: ../src/common/reg/reg.o\
+../src/common/fifo.vhdl
 	ghdl -a -v ../src/common/fifo.vhdl
 
 ../src/common/fifo_tb : ../src/common/fifo.o ../src/common/fifo_tb.vhdl
 	ghdl -a -v ../src/common/fifo_tb.vhdl
 	ghdl -e -v fifo_tb
 	mv fifo_tb ../bin/
+
+
+#Entity reg
+../src/common/reg/reg.o: ../src/common/reg/reg.vhdl
+	ghdl -a -v ../src/common/reg/reg.vhdl
+
+../src/common/reg/reg_tb : ../src/common/reg/reg.o ../src/common/reg/reg_tb.vhdl
+	ghdl -a -v ../src/common/reg/reg_tb.vhdl
+	ghdl -e -v reg_tb
+	mv reg_tb ../bin/
 
 
 #Entity exec

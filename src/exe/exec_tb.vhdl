@@ -8,6 +8,16 @@ entity  exec_tb is
 end entity;
 
 architecture arch of exec_tb is
+  function bool_to_logic(x : boolean)
+  return std_logic is
+  begin
+    if x then
+      return('1');
+    else
+      return('0');
+    end if;
+  end bool_to_logic;
+
     -- DECOD Interface
     -- -- synchronization
     signal dec2exe_empty	: std_logic;
@@ -210,7 +220,142 @@ begin
     vdd             => vdd,
     vss             => vss);
 
-    -- ================== stimuli generation =================================
+    -- ================== Stimuli Generation =================================
+    -- This process generates random input values at regular time intervals
+    -- For the moment, it doesn't take into account the whole FIFO dynamics
+    -- but only tests the correctness of arith/logic outputs.
+
+    process
+      -- Random number generation variable
+      variable rand     : real;
+      variable rmin     : real;
+      variable rmax     : real;
+      variable seed1    : positive;
+      variable seed2    : positive;
+      -- Inputs
+             -- -- Operands
+             variable v_dec_op1			: integer;
+             variable v_dec_op2			: integer;
+             variable v_dec_exe_dest	: integer;
+             variable v_dec_exe_wb		: integer;
+             variable v_dec_flag_wb		: integer;
+
+             -- DEC2MEM interface
+             variable v_dec_mem_data	: integer;
+             variable v_dec_mem_dest	: integer;
+             variable v_dec_pre_index 	: integer;
+
+             -- -- Memory format flags
+             variable v_dec_mem_xx		: integer; -- Intermediate for choosing a random mem access
+             variable v_dec_mem_lw		: boolean;
+             variable v_dec_mem_lb		: boolean;
+             variable v_dec_mem_sw		: boolean;
+             variable v_dec_mem_sb		: boolean;
+
+             -- Shifter commands
+             variable v_dec_shift_xxx	: integer; -- Intermediate for choosing a random shiftype
+             variable v_dec_shift_lsl	: boolean;
+             variable v_dec_shift_lsr	: boolean;
+             variable v_dec_shift_asr	: boolean;
+             variable v_dec_shift_ror	: boolean;
+             variable v_dec_shift_rrx	: boolean;
+             variable v_dec_shift_val	: integer;
+             variable v_dec_cy			: integer;
+
+             -- Alu operand selection
+             variable v_dec_comp_op1	: integer;
+             variable v_dec_comp_op2	: integer;
+             variable v_dec_alu_cy 		: integer;
+
+             -- Alu command
+             variable v_dec_alu_cmd		: integer;
+    begin
+      rmin := Real(integer'low);
+      rmax := Real(integer'high);
+      dec2exe_empty <= '0';
+      exe_pop <= '1';
+      for i in 0 to 100 loop
+        -- ================= Generate random signals ========================
+        uniform(seed1, seed2, rand);
+        v_dec_op1 := integer(rmin + rand*(rmax-rmin));
+        uniform(seed1, seed2, rand);
+        v_dec_op2 := integer(rmin + rand*(rmax-rmin));
+        uniform(seed1, seed2, rand);
+        v_dec_exe_dest := integer(rand*15.0);
+        uniform(seed1, seed2, rand);
+        v_dec_exe_wb := integer(rand);
+        uniform(seed1, seed2, rand);
+        v_dec_flag_wb := integer(rand);
+
+        uniform(seed1, seed2, rand);
+        v_dec_mem_data := integer(rmin + rand*(rmax-rmin));
+        uniform(seed1, seed2, rand);
+        v_dec_mem_dest := integer(rand*15.0);
+        uniform(seed1, seed2, rand);
+        v_dec_pre_index := integer(rand);
+
+        uniform(seed1, seed2, rand);
+        v_dec_mem_xx := integer(rand*5.0);
+        v_dec_mem_lw := (v_dec_mem_xx = 1);
+        v_dec_mem_lb := (v_dec_mem_xx = 2);
+        v_dec_mem_sw := (v_dec_mem_xx = 3);
+        v_dec_mem_sb := (v_dec_mem_xx = 4);
+
+        uniform(seed1, seed2, rand);
+        v_dec_shift_xxx := integer(rand*4.0);
+        v_dec_shift_lsl := (v_dec_shift_xxx = 0);
+        v_dec_shift_lsr := (v_dec_shift_xxx = 1);
+        v_dec_shift_asr := (v_dec_shift_xxx = 2);
+        v_dec_shift_ror := (v_dec_shift_xxx = 3);
+        v_dec_shift_rrx := (v_dec_shift_xxx = 4);
+        v_dec_shift_val := integer(rand*31.0);
+        uniform(seed1, seed2, rand);
+        v_dec_cy := integer(rand);
+
+        uniform(seed1, seed2, rand);
+        v_dec_comp_op1 := integer(rand);
+        uniform(seed1, seed2, rand);
+        v_dec_comp_op2 := integer(rand);
+        uniform(seed1, seed2, rand);
+        v_dec_alu_cy := integer(rand);
+
+        uniform(seed1, seed2, rand);
+        v_dec_alu_cmd := integer(rand*3.0);
+
+        -- ================= Assign variables to signals ========================
+        dec_op1 <= std_logic_vector(to_signed(v_dec_op1, dec_op1'length));
+        dec_op2 <= std_logic_vector(to_signed(v_dec_op2, dec_op2'length));
+        dec_exe_dest <= std_logic_vector(to_unsigned(v_dec_exe_dest, dec_exe_dest'length));
+        dec_exe_wb <= std_logic(to_unsigned(v_dec_exe_wb, 1)(0));
+        dec_flag_wb <= std_logic(to_unsigned(v_dec_flag_wb, 1)(0));
+
+        dec_mem_data <= std_logic_vector(to_signed(v_dec_mem_data, dec_mem_data'length));
+        dec_mem_dest <= std_logic_vector(to_unsigned(v_dec_mem_dest, dec_mem_dest'length));
+        dec_pre_index <= std_logic(to_unsigned(v_dec_pre_index, 1)(0));
+
+        dec_mem_lw <= bool_to_logic(v_dec_mem_lw);
+        dec_mem_lb <= bool_to_logic(v_dec_mem_lb);
+        dec_mem_sw <= bool_to_logic(v_dec_mem_sw);
+        dec_mem_sb <= bool_to_logic(v_dec_mem_sb);
+
+        dec_shift_lsl <= bool_to_logic(v_dec_shift_lsl);
+        dec_shift_lsr <= bool_to_logic(v_dec_shift_lsr);
+        dec_shift_asr <= bool_to_logic(v_dec_shift_asr);
+        dec_shift_ror <= bool_to_logic(v_dec_shift_ror);
+        dec_shift_rrx <= bool_to_logic(v_dec_shift_rrx);
+        dec_shift_val <= std_logic_vector(to_unsigned(v_dec_shift_val, dec_shift_val'length));
+        dec_cy <= std_logic(to_unsigned(v_dec_cy, 1)(0));
+
+        dec_comp_op1 <= std_logic(to_unsigned(v_dec_comp_op1, 1)(0));
+        dec_comp_op2 <= std_logic(to_unsigned(v_dec_comp_op2, 1)(0));
+        dec_alu_cy <= std_logic(to_unsigned(v_dec_alu_cy, 1)(0));
+
+        dec_alu_cmd <= std_logic_vector(to_unsigned(v_dec_alu_cmd, dec_alu_cmd'length));
+
+        wait for 100 ps;
+        end loop;
+        wait;
+    end process;
 
 end arch;
 

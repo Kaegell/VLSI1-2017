@@ -67,21 +67,39 @@ entity Reg is
 end Reg;
 
 architecture Reg of Reg is
-	signal registers : array (0 to 15) of std_logic_vector (31 downto 0);
+    type REG_array is array (0 to 15) of std_logic_vector (31 downto 0);
+	signal registers : REG_array;
 	signal inval_regs: std_logic_vector (0 to 15);
+    signal pc_sig: std_logic_vector (31 downto 0);
 begin
 	process(ck)
 	begin
 		if reset_n = '0' then
-			registers(0 to 15) <= array (0 to 15) of std_logic_vector (31 downto 0, others => '0');
-			inval_regs(0 to 15) <= std_logic_vector (0 to 15, others => '1');
+			inval_regs(0 to 15) <= (others => '0');
 		elsif rising_edge(ck) then
-			if wen0 = '1' then
+            inval_regs(to_integer(unsigned(inval_adr1)))<= inval1;
+            inval_regs(to_integer(unsigned(inval_adr2)))<= inval2;
+
+            if inval_regs(15) = '1' and inc_pc = '1' then
+                pc_sig <= std_logic_vector(
+                          to_unsigned(registers(15) + 4,pc_sig'length));
+                inval_regs(15) <= '0';
+            else
+                pc_sig <= registers(15);
+            end if;
+            registers(15) <= pc_sig;
+            reg_pc <= registers(15);
+            reg_pcv <= inval_regs(15);
+            
+			if wen2 = '1' then
 				if wen1 = '1' then
-					registers(unsigned(to_integer(wadr1))) <= wdata1;
+					registers(to_integer(unsigned(wadr1))) <= wdata1;
+                    inval_regs(to_integer(unsigned(wadr1))) <= '0';
 				else
-					registers(unsigned(to_integer(wadr0))) <= wdata0;
+					registers(to_integer(unsigned(wadr2))) <= wdata2;
+                    inval_regs(to_integer(unsigned(wadr2))) <= '0';
 				end if;
-		end process;
+            end if;
+        end if;
 	end process;
 end architecture;

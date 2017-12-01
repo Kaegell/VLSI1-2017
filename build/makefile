@@ -30,6 +30,26 @@
 	mv fifo_handler_tb ../bin/
 
 
+#Entity fifov2
+../src/common/fifov2/fifov2.o: ../src/common/fifov2/fifov2.vhdl
+	ghdl -a -v ../src/common/fifov2/fifov2.vhdl
+
+../src/common/fifov2/fifov2_tb : ../src/common/fifov2/fifov2.o ../src/common/fifov2/fifov2_tb.vhdl
+	ghdl -a -v ../src/common/fifov2/fifov2_tb.vhdl
+	ghdl -e -v fifov2_tb
+	mv fifov2_tb ../bin/
+
+
+#Entity alu
+../src/exe/alu/alu.o: ../src/exe/alu/alu.vhdl
+	ghdl -a -v ../src/exe/alu/alu.vhdl
+
+../src/exe/alu/alu_tb : ../src/exe/alu/alu.o ../src/exe/alu/alu_tb.vhdl
+	ghdl -a -v ../src/exe/alu/alu_tb.vhdl
+	ghdl -e -v alu_tb
+	mv alu_tb ../bin/
+
+
 #Entity exec
 ../src/exe/exec.o: ../src/exe/alu/alu.o\
 ../src/exe/shifter/shifter.o\
@@ -40,6 +60,16 @@
 	ghdl -a -v ../src/exe/exec_tb.vhdl
 	ghdl -e -v exec_tb
 	mv exec_tb ../bin/
+
+
+#Entity shift_asr
+../src/exe/shifter/shift_asr/shift_asr.o: ../src/exe/shifter/shift_asr/shift_asr.vhdl
+	ghdl -a -v ../src/exe/shifter/shift_asr/shift_asr.vhdl
+
+../src/exe/shifter/shift_asr/shift_asr_tb : ../src/exe/shifter/shift_asr/shift_asr.o ../src/exe/shifter/shift_asr/shift_asr_tb.vhdl
+	ghdl -a -v ../src/exe/shifter/shift_asr/shift_asr_tb.vhdl
+	ghdl -e -v shift_asr_tb
+	mv shift_asr_tb ../bin/
 
 
 #Entity shift_lsl
@@ -72,6 +102,16 @@
 	mv shift_ror_tb ../bin/
 
 
+#Entity shift_rrx
+../src/exe/shifter/shift_rrx/shift_rrx.o: ../src/exe/shifter/shift_rrx/shift_rrx.vhdl
+	ghdl -a -v ../src/exe/shifter/shift_rrx/shift_rrx.vhdl
+
+../src/exe/shifter/shift_rrx/shift_rrx_tb : ../src/exe/shifter/shift_rrx/shift_rrx.o ../src/exe/shifter/shift_rrx/shift_rrx_tb.vhdl
+	ghdl -a -v ../src/exe/shifter/shift_rrx/shift_rrx_tb.vhdl
+	ghdl -e -v shift_rrx_tb
+	mv shift_rrx_tb ../bin/
+
+
 #Entity shifter
 ../src/exe/shifter/shifter.o: ../src/exe/shifter/shift_asr/shift_asr.o\
 ../src/exe/shifter/shift_lsl/shift_lsl.o\
@@ -87,34 +127,14 @@
 	mv shifter_tb ../bin/
 
 
-#Entity shift_rrx
-../src/exe/shifter/shift_rrx/shift_rrx.o: ../src/exe/shifter/shift_rrx/shift_rrx.vhdl
-	ghdl -a -v ../src/exe/shifter/shift_rrx/shift_rrx.vhdl
+#Entity reg
+../src/reg/reg.o: ../src/reg/reg.vhdl
+	ghdl -a -v ../src/reg/reg.vhdl
 
-../src/exe/shifter/shift_rrx/shift_rrx_tb : ../src/exe/shifter/shift_rrx/shift_rrx.o ../src/exe/shifter/shift_rrx/shift_rrx_tb.vhdl
-	ghdl -a -v ../src/exe/shifter/shift_rrx/shift_rrx_tb.vhdl
-	ghdl -e -v shift_rrx_tb
-	mv shift_rrx_tb ../bin/
-
-
-#Entity shift_asr
-../src/exe/shifter/shift_asr/shift_asr.o: ../src/exe/shifter/shift_asr/shift_asr.vhdl
-	ghdl -a -v ../src/exe/shifter/shift_asr/shift_asr.vhdl
-
-../src/exe/shifter/shift_asr/shift_asr_tb : ../src/exe/shifter/shift_asr/shift_asr.o ../src/exe/shifter/shift_asr/shift_asr_tb.vhdl
-	ghdl -a -v ../src/exe/shifter/shift_asr/shift_asr_tb.vhdl
-	ghdl -e -v shift_asr_tb
-	mv shift_asr_tb ../bin/
-
-
-#Entity alu
-../src/exe/alu/alu.o: ../src/exe/alu/alu.vhdl
-	ghdl -a -v ../src/exe/alu/alu.vhdl
-
-../src/exe/alu/alu_tb : ../src/exe/alu/alu.o ../src/exe/alu/alu_tb.vhdl
-	ghdl -a -v ../src/exe/alu/alu_tb.vhdl
-	ghdl -e -v alu_tb
-	mv alu_tb ../bin/
+../src/reg/reg_tb : ../src/reg/reg.o ../src/reg/reg_tb.vhdl
+	ghdl -a -v ../src/reg/reg_tb.vhdl
+	ghdl -e -v reg_tb
+	mv reg_tb ../bin/
 
 
 clean:

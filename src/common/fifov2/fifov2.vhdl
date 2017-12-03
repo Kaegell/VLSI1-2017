@@ -22,8 +22,8 @@ entity fifov2 is
 
         reset_n   : in  std_logic;
         ck        : in  std_logic;
-        vdd       : in  std_logic;
-        vss       : in  std_logic
+        vdd       : in  bit;
+        vss       : in  bit
       );
 end fifov2;
 

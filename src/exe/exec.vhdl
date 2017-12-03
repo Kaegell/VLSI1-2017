@@ -67,8 +67,6 @@ ENTITY Exec IS
              exe_mem_sb		: OUT STD_LOGIC;
 
              exe2mem_empty	: OUT STD_LOGIC;
-             exe2mem_full	: OUT STD_LOGIC;
-             exe_push		: IN STD_LOGIC;
              mem_pop			: IN STD_LOGIC;
 
              -- global interface
@@ -86,6 +84,13 @@ Architecture Exec OF Exec IS
     SIGNAL shifter_cout_sig : STD_LOGIC;
     SIGNAL alu_cout_sig     : STD_LOGIC;
     SIGNAL alu_res     : STD_LOGIC_VECTOR(31 DOWNTO 0);
+
+    signal i_pushes : std_logic;        -- Indicates if the current instruction
+                                        -- needs to push into the FIFO
+    signal i_stagnant : std_logic;      -- Indicates if the current instruction
+                                        -- has been here for more than one cycle
+    signal exe2mem_push : std_logic;    -- Push command for the EXE FIFO
+    signal exe2mem_full : std_logic;
 
     COMPONENT Alu
         PORT (
@@ -151,6 +156,48 @@ Architecture Exec OF Exec IS
                  vss			: IN BIT);
     END COMPONENT;
 
+    component fifov2
+      generic ( CAPACITY  : integer := 5;
+                LENGTH    : integer := 72
+              );
+      port (din       : in  std_logic_vector((LENGTH - 1) downto 0);
+            dout      : out std_logic_vector((LENGTH - 1) downto 0);
+
+            push      : in  std_logic;
+            pop       : in  std_logic;
+
+            full      : out std_logic;
+            empty     : out std_logic;
+
+            debug_head : out std_logic_vector(3 downto 0);
+            debug_tail : out std_logic_vector(3 downto 0);
+            debug_size : out std_logic_vector(3 downto 0);
+
+            reset_n   : in  std_logic;
+            ck        : in  std_logic;
+            vdd       : in  bit;
+            vss       : in  bit
+          );
+    end component;
+
+    component fifo_handler
+      port (
+         -- intra-stage signals
+             i_pushes      : in   std_logic;
+             i_stagnant    : out  std_logic;
+
+         -- inter-stage i/o
+             empty         : in   std_logic;
+             full          : in   std_logic;
+             push          : out  std_logic;
+             pop           : out  std_logic;
+
+         -- global interface
+             ck					  : in    std_logic;
+             reset_n			: in    std_logic;
+             vdd				  : in    bit;
+             vss				  : in    bit);
+    end component;
 
 BEGIN
 
@@ -190,7 +237,8 @@ BEGIN
                  vss		=> vss,
                  vdd		=> vdd);
 
-    exec2mem : fifo_72b
+    -- FIFO handling
+    exec2mem : fifov2 
     PORT MAP (
     din(71)				=> dec_mem_lw,
     din(70)				=> dec_mem_lb,
@@ -210,7 +258,8 @@ BEGIN
     dout(63 downto 32)	=> exe_mem_data,
     dout(31 downto 0)	=> exe_mem_adr,
 
-    push				=> exe_push,
+
+    push				=> exe2mem_push,
     pop					=> mem_pop,
 
     empty				=> exe2mem_empty,
@@ -220,6 +269,20 @@ BEGIN
     ck					=> ck,
     vdd					=> vdd,
     vss					=> vss);
+
+    fifo_handler_inst : fifo_handler
+    port map (
+    i_pushes      => i_pushes,
+    i_stagnant    => i_stagnant,
+    empty         => dec2exe_empty,
+    full          => exe2mem_full,
+    push          => exe2mem_push,
+    pop           => exe_pop,
+    ck            => ck,
+    reset_n       => reset_n,
+    vdd           => vdd,
+    vss           => vss);
+    -- end of FIFO handling
 
     exe_dest <= dec_exe_dest;
     exe_wb <= dec_exe_wb;

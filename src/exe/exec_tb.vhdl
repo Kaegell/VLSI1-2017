@@ -80,8 +80,6 @@ architecture arch of exec_tb is
     signal exe_mem_sb		: std_logic;
     
     signal exe2mem_empty	: std_logic;
-    signal exe2mem_full	        : std_logic;
-    signal exe_push		: std_logic;
     signal mem_pop		: std_logic;
     
     -- global interface
@@ -156,8 +154,6 @@ architecture arch of exec_tb is
              exe_mem_sb		: out std_logic;
 
              exe2mem_empty	: out std_logic;
-             exe2mem_full	: out std_logic;
-             exe_push		: in std_logic;
              mem_pop		: in std_logic;
 
     -- global interface
@@ -212,8 +208,6 @@ begin
     exe_mem_sw      => exe_mem_sw,
     exe_mem_sb      => exe_mem_sb,
     exe2mem_empty   => exe2mem_empty,
-    exe2mem_full    => exe2mem_full,
-    exe_push        => exe_push,
     mem_pop         => mem_pop,
     ck              => ck,
     reset_n         => reset_n,

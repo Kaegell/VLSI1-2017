@@ -35,8 +35,8 @@ architecture arch of fifov2_tb is
 
   signal reset_n   : std_logic;
   signal ck        : std_logic;
-  signal vdd       : std_logic;
-  signal vss       : std_logic;
+  signal vdd       : bit;
+  signal vss       : bit;
 
   -- ==================== UUT Declaration ====================
   component fifov2
@@ -55,8 +55,8 @@ architecture arch of fifov2_tb is
 
         reset_n   : in  std_logic;
         ck        : in  std_logic;
-        vdd       : in  std_logic;
-        vss       : in  std_logic
+        vdd       : in  bit;
+        vss       : in  bit
       );
   end component;
 begin

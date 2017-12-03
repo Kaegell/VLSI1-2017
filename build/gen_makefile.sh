@@ -14,7 +14,7 @@ function add_entity {
     target_dir=$(dirname $1);
 
     # Find object file dependencies
-    dependencies=`ls -l $target_dir | grep '^[dl]' | awk '{print $9}' |
+    dependencies=`ls -lL $target_dir | grep '^[dl]' | awk '{print $9}' |
     sed -e "s:^\(.*\)$:$target_dir/\1/\1.o\\\\\:g"`;
 
     # Add VHDL source to dependencies
@@ -57,7 +57,7 @@ if [ "$destfile" == "" ]; then
 fi
 
 # ---------- Main program ------------------------------------------------------
-sources=`find $src \\( -iname "*.vhdl" ! -iname "*_tb.vhdl" \\)`
+sources=`find -L $src \\( -iname "*.vhdl" ! -iname "*_tb.vhdl" \\)`
 echo $sources;
 
 echo "" > $destfile

@@ -2,6 +2,7 @@
 *.swp
 *.swo
 *.cf
+build/vcd
 work/
 bin/
 

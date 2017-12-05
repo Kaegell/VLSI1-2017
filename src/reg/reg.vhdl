@@ -74,10 +74,6 @@ architecture Reg of Reg is
     signal zero_sig : std_logic;
     signal neg_sig : std_logic;
     signal ovr_sig : std_logic;
-    signal cry_valid_sig : std_logic;
-    signal zero_valid_sig : std_logic;
-    signal neg_valid_sig : std_logic;
-    signal ovr_valid_sig : std_logic;
     signal pc_sig: unsigned (31 downto 0);
 begin
     process(ck)
@@ -85,10 +81,6 @@ begin
         -- Invalidate all registers when reset (asynchronously)
         if reset_n = '0' then
             inval_regs(0 to 15) <= (others => '0');
-            cry_valid_sig <= '1';
-            zero_valid_sig <= '1';
-            neg_valid_sig <= '1';
-            ovr_valid_sig <= '1';
 
         elsif rising_edge(ck) then
 
@@ -143,6 +135,19 @@ begin
                     registers(to_integer(unsigned(wadr2))) <= wdata2;
                     inval_regs(to_integer(unsigned(wadr2))) <= '0';
                 end if;
+            end if;
+
+            -- CSPR Flags Update
+            -- C,Z,N updated when logical operations
+            -- V updated when arithmetical operation
+            -- (cf. DECOD description)
+            if inval_czn = '1' then
+                reg_cry <= wcry;
+                reg_zero <= wzero;
+                reg_neg <= wneg;
+            end if;
+            if inval_ovr <= '1' then
+                reg_ovr <= wovr;
             end if;
         end if;
     end process;

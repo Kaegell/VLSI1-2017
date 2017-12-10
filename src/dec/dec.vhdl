@@ -475,15 +475,41 @@ begin
 
 -- Execution condition
 
-	cond <= '1' when	(if_ir(31 downto 28) = X"0" and zero = '1') or
-							(if_ir(31 downto 28) = X"1" and zero = '0') or
-							....
-							(if_ir(31 downto 28) = X"E") else '0';
+	cond <= '1' when
+          (if_ir(31 downto 28) = X"0" and zero = '1') or
+          (if_ir(31 downto 28) = X"1" and zero = '0') or
+          (if_ir(31 downto 28) = X"2" and cry  = '1') or
+          (if_ir(31 downto 28) = X"3" and cry  = '0') or
+          (if_ir(31 downto 28) = X"4" and neg  = '1') or
+          (if_ir(31 downto 28) = X"5" and neg  = '0') or
+          (if_ir(31 downto 28) = X"6" and ovr  = '1') or
+          (if_ir(31 downto 28) = X"7" and ovr  = '0') or
+          (if_ir(31 downto 28) = X"8" and cry = '1' and zero = '0') or
+          (if_ir(31 downto 28) = X"9" and cry = '0' and zero = '1') or
+          (if_ir(31 downto 28) = X"A" and neg = ovr) or
+          (if_ir(31 downto 28) = X"B" and neg /= ovr) or
+          (if_ir(31 downto 28) = X"C" and zero = '0' and (neg = ovr)) or
+          (if_ir(31 downto 28) = X"D" and (zero = '1' or (neg /= ovr))) or
+          (if_ir(31 downto 28) = X"E") else '0';
 
+  -- condv = "the 'cond' signal is valid" and 'cond' is valid when
+  -- all the flags it uses are valid, i.e. cond = FOO and all the flags
+  -- influencing FOO are valid
 	condv <= '1'		when if_ir(31 downto 28) = X"E" else
 				reg_cznv	when (if_ir(31 downto 28) = X"0" or
-									....
-									if_ir(31 downto 28) = X"9") else
+                        if_ir(31 downto 28) = X"1") or
+									      if_ir(31 downto 28) = X"2") or
+									      if_ir(31 downto 28) = X"3") or
+									      if_ir(31 downto 28) = X"4") or
+									      if_ir(31 downto 28) = X"5") or
+									      if_ir(31 downto 28) = X"8") or
+									      if_ir(31 downto 28) = X"9") else
+        reg_vv	  when (if_ir(31 downto 28) = X"6" or
+									if_ir(31 downto 28) = X"7") else
+        reg_czng and reg_vv	  when (if_ir(31 downto 28) = X"A" or
+									      if_ir(31 downto 28) = X"B") or
+									      if_ir(31 downto 28) = X"C") or
+									      if_ir(31 downto 28) = X"D") else
 
 
 
@@ -495,12 +521,30 @@ begin
 								if_ir(7 downto 4) = "1001" else '0';
 	swap_t <= '1' when	if_ir(27 downto 23) = "00010" and
 								if_ir(11 downto 4) = "00001001" else '0';
-	....
+  trans_t <= '1' when if_ir(27 downto 26) = "01" and not
+             (if_ir(25) = '1' and if_ir(4) = '1') else '0';
+  mtrans_t <= '1' when if_ir(27 downto 25) = "100" else '0';
+  branch_t <= '1' when if_ir(27 downto 25) = "101" else '0';
 
 -- decod regop opcode
 
 	and_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"0" else '0';
-	....
+	eor_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"1" else '0';
+	sub_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"2" else '0';
+	rsb_t <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"3" else '0';
+	add_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"4" else '0';
+	adc_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"5" else '0';
+	sbc_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"6" else '0';
+	rsc_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"7" else '0';
+	tst_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"8" else '0';
+	teq_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"8" else '0';
+	cmp_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"A" else '0';
+	cmn_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"B" else '0';
+	orr_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"C" else '0';
+	mov_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"D" else '0';
+	bic_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"E" else '0';
+	mvn_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"F" else '0';
+
 -- mult instruction
 
 -- trans instruction

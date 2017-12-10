@@ -554,13 +554,17 @@ begin
 -- branch instruction
 
 -- Decode interface operands
-	op1 <=	reg_pc		when branch_t = '1'					else
-				....
-				rdata1;
+	op1 <= reg_pc		when branch_t = '1'					else
+         rdata1;
 
-	offset32 <=	
+  -- Offset32 is the 24-bit offset given in a branch,
+  -- expanded into a 32-bit word.
+  -- According to the doc, the 24-bit offset of a branch
+  -- must be left-shifted by 2 bits and sign-extended to 32-bits
+  offset32(25 downto 0) <= if_ir(23 downto 0) & "00"; -- left shift
+  offset32(31 downto 26) <= (others => if_ir(23);     -- sign extent
 
-	op2	<=  ....
+  op2	<= offset32   when branch_t = '1' else
 				rdata2;
 
 	alu_dest <=	 ..... else
@@ -569,14 +573,15 @@ begin
 	alu_wb	<= '1'			when	
 					'0';
 
-	flag_wb	<= 
+	flag_wb	<=  sdfasd;
 
 -- reg read
-	radr1 <= 
+  radr1 <= if_ir(15 downto 12) when mult_t = '1' else
+           if_ir(19 downto 16); -- Rn
 				
-	radr2 <=
+  radr2 <= if_ir(3 downto 0); -- Rm
 
-	radr3 <=
+  radr3 <= if_ir(15 downto 12); -- Rd (source register for STR)
 
 -- Reg Invalid
 

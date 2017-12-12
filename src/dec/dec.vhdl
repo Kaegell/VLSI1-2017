@@ -537,7 +537,7 @@ begin
 	sbc_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"6" else '0';
 	rsc_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"7" else '0';
 	tst_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"8" else '0';
-	teq_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"8" else '0';
+	teq_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"9" else '0';
 	cmp_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"A" else '0';
 	cmn_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"B" else '0';
 	orr_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"C" else '0';
@@ -554,8 +554,10 @@ begin
 -- branch instruction
 
 -- Decode interface operands
-	op1 <= reg_pc		when branch_t = '1'					else
-         rdata1;
+    -- CHECKED
+	op1 <= reg_pc when branch_t = '1' else
+           X"00000000" when regop_t = '1' and (mov_i = '1' or mvn_i = '1') else
+           rdata1;
 
   -- Offset32 is the 24-bit offset given in a branch,
   -- expanded into a 32-bit word.
@@ -564,16 +566,34 @@ begin
   offset32(25 downto 0) <= if_ir(23 downto 0) & "00"; -- left shift
   offset32(31 downto 26) <= (others => if_ir(23);     -- sign extent
 
-  op2	<= offset32   when branch_t = '1' else
-				rdata2;
+  --CHECKED
+  op2 <= offset32                       when branch_t = '1'                     else
+         X"000000" & if_ir(7 downto 0)  when regop_t  = '1' and if_ir(25) = '1' else
+         rdata2;
 
-	alu_dest <=	 ..... else
-					if_ir(19 downto 16);
+  alu_dest <=	 reg_pc when branch_t = '1' else if_ir(15 downto 12);
 
-	alu_wb	<= '1'			when	
-					'0';
+  -- CHECKED
+    alu_wb	 <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"0"   --AND
+                      or regop_t = '1' and if_ir(24 downto 21) = X"1"   --EOR
+                      or regop_t = '1' and if_ir(24 downto 21) = X"2"   --SUB
+                      or regop_t = '1' and if_ir(24 downto 21) = X"3"   --RSB
+                      or regop_t = '1' and if_ir(24 downto 21) = X"4"   --ADD
+                      or regop_t = '1' and if_ir(24 downto 21) = X"5"   --ADC
+                      or regop_t = '1' and if_ir(24 downto 21) = X"6"   --SBC
+                      or regop_t = '1' and if_ir(24 downto 21) = X"7"   --RSC
+                      or regop_t = '1' and if_ir(24 downto 21) = X"C"   --ORR
+                      or regop_t = '1' and if_ir(24 downto 21) = X"D"   --MOV
+                      or regop_t = '1' and if_ir(24 downto 21) = X"E"   --BIC
+                      or regop_t = '1' and if_ir(24 downto 21) = X"F"   --MNV
+                  else '0';
 
-	flag_wb	<=  sdfasd;
+  -- CHECKED
+      flag_wb	<=  '1' when regop_t = '1' and if_ir(24 downto 21) = X"8" --TST
+                          or regop_t = '1' and if_ir(24 downto 21) = X"9" --TEQ
+                          or regop_t = '1' and if_ir(24 downto 21) = X"A" --CMP
+                          or regop_t = '1' and if_ir(24 downto 21) = X"B" --CMN
+                      else if_ir(20);
 
 -- reg read
   radr1 <= if_ir(15 downto 12) when mult_t = '1' else
@@ -611,27 +631,41 @@ begin
 	ld_dest <= 
 	pre_index <=
 
-	mem_lw <= 
+	mem_lw <= ldr_i;
 	mem_lb <= ldrb_i;
-	mem_sw <= 
+	mem_sw <= str_i;
 	mem_sb <= strb_i;
 
 -- Shifter command
 
-	shift_lsl <=
-
-	shift_lsr <=
-	shift_asr <= 
-	shift_ror <=
-	shift_rrx <=
-
-	shift_val <=	"00010"							when branch_t = '1'							else
+    shift_lsl <= '1' when if_ir(6 downto 5) = "00" else '0';
+    shift_lsr <='1' when if_ir(6 downto 5) = "01" else '0';
+	shift_asr <='1' when if_ir(6 downto 5) = "10" else '0';
+	shift_ror <= '1' when if_ir(6 downto 5) = "11" else '0'; 
+	shift_rrx <= '1' when if_ir(6 downto 5) = "11" else '0';
+                  
+	shift_val <= "00010" when branch_t = '1'
+                 else dec_op1 when branch_t = '0' and 
 
 -- Alu operand selection
-	comp_op1	<= '1' when rsb_i = '1' or 
-	comp_op2	<=	'1' when sub_i = '1' or 
+	comp_op1	<= '1' when rsb_i = '1'
+                        or  rsc_i = '1'
+                        or  mov_i = '1'
+                        or  mvn_i = '1'
+                    else '0';
+	comp_op2	<=	'1' when sub_i = '1'
+                         or  sbc_i = '1'
+                         or  cmp_i = '1'
+                    else '0';
 
-	alu_cy <=	'1'				when sub_i = '1' or
+	alu_cy <= '1'   when sub_i = '1'
+                      or rsb_i = '1'
+                      or cmp_i = '1'
+    else
+              exe_c when adc_i = '1'
+                      or sbc_i = '1'
+                      or rsc_i = '1'
+    else '0';
 
 -- Alu command
 
@@ -670,6 +704,7 @@ begin
 	end process;
 
 	mtrans_1un <= '1' when mtrans_nbr = "00001" else '0';
+
 
 	mtrans_rd <=	X"0" when mtrans_list(0) = '1' else
 						X"1" when mtrans_list(1) = '1' else

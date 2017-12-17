@@ -319,6 +319,7 @@ signal shift_ror	: Std_Logic;
 signal shift_rrx	: Std_Logic;
 signal shift_val	: Std_Logic_Vector(4 downto 0);
 signal cy			: Std_Logic;
+signal shift_is_zero: Std_Logic;
 
 -- Alu operand selection
 signal comp_op1	: Std_Logic;
@@ -596,40 +597,48 @@ begin
                       else if_ir(20);
 
 -- reg read
-  radr1 <= if_ir(15 downto 12) when mult_t = '1' else
-           if_ir(19 downto 16); -- Rn
+-- CHECKED
+  radr1 <= if_ir(15 downto 12) when mult_t = '1' else   -- Rd
+           if_ir(19 downto 16);                         -- Rn
 				
-  radr2 <= if_ir(3 downto 0); -- Rm
+  radr2 <= if_ir(3 downto 0);                           -- Rm
 
-  radr3 <= if_ir(15 downto 12); -- Rd (source register for STR)
+  radr3 <= if_ir(11 downto  8) when regop_t = '1' else  -- Rs (most cases for regop)
+           if_ir(15 downto 12);                         -- Rd (source register for STR)
 
 -- Reg Invalid
+--CHECKED
 
-	inval_exe_adr <= ...... else
-							if_ir(15 downto 12);
+  inval_exe_adr <=  if_ir(11 downto  8) when regop_t = '1' else
+					if_ir(15 downto 12);
 
-	inval_exe <=	'1'	when	....
+	inval_exe <= '1'	when regop_t = '1' and not (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') else
 						'0';
 
-	inval_mem_adr <=	....
-							mtrans_rd;
+    inval_mem_adr <=	if_ir(15 downto 12) when trans_t = '1' else
+						mtrans_rd;
 
-	inval_mem <=	'1'	when		....		else
-						'0';
+	inval_mem <=	'1'	when		trans_t = '1' and (ldr_i='1' or ldrb_i='1')	else
+					'0';
 
-	inval_czn <=
+    inval_czn <=    '1' when regop_t = '1' and (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') else 
+                    if_ir(20);                          -- S flag
 			
 
-	inval_ovr <=
+    inval_ovr <=    if_ir(20) when regop_t = '1' and not(teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') else
+                    '0';
 
 -- operand validite
-
-	operv <=	'1' when  ...
+-- an instruction can be executed only when read registers are deemed valid 
+--CHECKED
+    operv <=	'1' when    regop_t = '1' and rvalid1 = '1' and rvalid2 ='1' and
+                            (not(if_ir(25) = '0' and if_ir(4) = '1') or rvalid3) else -- use of Rs
 				'0';
 
 -- Decode to mem interface 
-	ld_dest <= 
-	pre_index <=
+--CHECKED
+    ld_dest <= if_ir(15 downto 12);
+    pre_index <=if_ir(24);
 
 	mem_lw <= ldr_i;
 	mem_lb <= ldrb_i;
@@ -637,17 +646,33 @@ begin
 	mem_sb <= strb_i;
 
 -- Shifter command
-
-    shift_lsl <= '1' when if_ir(6 downto 5) = "00" else '0';
-    shift_lsr <='1' when if_ir(6 downto 5) = "01" else '0';
-	shift_asr <='1' when if_ir(6 downto 5) = "10" else '0';
-	shift_ror <= '1' when if_ir(6 downto 5) = "11" else '0'; 
-	shift_rrx <= '1' when if_ir(6 downto 5) = "11" else '0';
+--CHECKED
+    shift_is_zero <= regop_t = '1'                  -- regop
+                     and                            -- and
+                     (
+                        (if_ir(25) = '0'            -- -- op2 is register 
+                        and                         -- -- and shift = 0
+                        (if_ir(4)='0' and (if_ir(11 downto 7) = "00000") or (if_ir(4)='1' and rdata3 = x"00000000")))
+                     or                             -- or
+                        (if_ir(4)='1'               -- -- op2 is immediate
+                        and                         -- -- and
+                        if_ir(11 downto 8)="0000")  -- -- shift = 0
+                    );
+    shift_lsl <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "00" else '0';
+    shift_lsr <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "01" else '0';
+	shift_asr <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "10" else '0';
+    shift_rrx <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "11" and shift_is_zero else '0';
+    shift_ror <= '1' when if_ir(25) = '1' or (if_ir(25) = '0' and if_ir(6 downto 5) = "11" and not(shift_is_zero)) else '0';
                   
-	shift_val <= "00010" when branch_t = '1'
-                 else dec_op1 when branch_t = '0' and 
+	shift_val <= "00010" when branch_t = '1' else
+                                                                                                   -- regop cases :
+                 if_ir(11 downto 8) & '0' when regop_t='1' and if_ir(25)='1' else                  -- op2 is imm
+                 if_ir(11 downto 7)       when regop_t='1' and if_ir(25)='0' and if_ir(4)='0' else -- op2 is reg, shift is imm
+                 rdata3(4 downto 0)       when regop_t='1' and if_ir(25)='0' and if_ir(4)='1' else -- op2 is reg, shift is reg
+                 "00000";
 
 -- Alu operand selection
+-- CHECKED
 	comp_op1	<= '1' when rsb_i = '1'
                         or  rsc_i = '1'
                         or  mov_i = '1'
@@ -668,9 +693,12 @@ begin
     else '0';
 
 -- Alu command
+--CHECKED
 
-	alu_cmd <=	"11" when ...  else
-					"00";
+	alu_cmd <=  "11" when eor_i='1' or teq_i='1'                else -- ALU-XOR
+                "10" when orr_i='1' or mov_i='1' or mvn_i='1'   else -- ALU-OR
+                "01" when and_i='1' or tst_i='1' or bic_i='1'   else -- ALU-AND
+				"00";                                                -- ALU-ADD
 -- Mtrans reg list
 
 	process (ck)

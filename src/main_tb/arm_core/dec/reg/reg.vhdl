@@ -90,7 +90,7 @@ begin
 
             -- PC increment operator
             if inval_regs(15) = '1' and inc_pc = '1' then
-                pc_sig <= unsigned(registers(15)) + 4;
+                pc_sig <= to_unsigned(to_integer(unsigned(registers(15))) + 4, pc_sig'length);
                 inval_regs(15) <= '0';
             else
                 pc_sig <= unsigned(registers(15));

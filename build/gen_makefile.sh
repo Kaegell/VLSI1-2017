@@ -60,6 +60,9 @@ fi
 sources=`find -L $src \\( -iname "*.vhdl" ! -iname "*_tb.vhdl" \\)`
 echo $sources;
 
+echo -e "all : main_tb" >> $destfile
+echo -e "" >> $destfile
+
 echo "" > $destfile
 for file in $sources
 do
@@ -67,6 +70,14 @@ do
 done
 
 # Add "manually" the main_tb to the makefile
+
+echo -e "../src/main_tb/main_tb.o : ../src/main_tb/main_tb.vhdl\\
+         ../src/main_tb/arm_core/arm_core.o\\
+         ../src/main_tb/icache/icache.o\\
+         ../src/main_tb/dcache/dcache.o" >> $destfile
+echo -e "\tghdl -a -v main_tb.vhdl" >> $destfile
+echo -e >> $destfile
+
 echo -e "main_tb : ../src/main_tb/main_tb.o ../lib/arm_ghdl.o" >> $destfile
 echo -e "\tghdl -e -v -Wl,../lib/mem.o -Wl,../lib/arm_ghdl.o -Wl,../lib/ElfObj.o main_tb" >> $destfile
 echo -e "" >> $destfile

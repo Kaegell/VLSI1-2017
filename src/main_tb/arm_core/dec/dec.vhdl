@@ -496,23 +496,14 @@ begin
   -- condv = "the 'cond' signal is valid" and 'cond' is valid when
   -- all the flags it uses are valid, i.e. cond = FOO and all the flags
   -- influencing FOO are valid
-	condv <= '1'		when if_ir(31 downto 28) = X"E" else
-				reg_cznv	when (if_ir(31 downto 28) = X"0" or
-                        if_ir(31 downto 28) = X"1") or
-									      if_ir(31 downto 28) = X"2") or
-									      if_ir(31 downto 28) = X"3") or
-									      if_ir(31 downto 28) = X"4") or
-									      if_ir(31 downto 28) = X"5") or
-									      if_ir(31 downto 28) = X"8") or
-									      if_ir(31 downto 28) = X"9") else
-        reg_vv	  when (if_ir(31 downto 28) = X"6" or
-									if_ir(31 downto 28) = X"7") else
-        reg_czng and reg_vv	  when (if_ir(31 downto 28) = X"A" or
-									      if_ir(31 downto 28) = X"B") or
-									      if_ir(31 downto 28) = X"C") or
-									      if_ir(31 downto 28) = X"D") else
-
-
+	condv <= '1'		      when if_ir(31 downto 28) = X"E" else
+                 reg_cznv and reg_vv  when if_ir(31 downto 28) = X"A" or
+                                           if_ir(31 downto 28) = X"B" or
+                                           if_ir(31 downto 28) = X"C" or
+                                           if_ir(31 downto 28) = X"D" else
+                 reg_vv               when if_ir(31 downto 28) = X"6" or
+                                           if_ir(31 downto 28) = X"7" else
+		 reg_cznv;
 
 -- decod instruction type
 
@@ -565,7 +556,7 @@ begin
   -- According to the doc, the 24-bit offset of a branch
   -- must be left-shifted by 2 bits and sign-extended to 32-bits
   offset32(25 downto 0) <= if_ir(23 downto 0) & "00"; -- left shift
-  offset32(31 downto 26) <= (others => if_ir(23);     -- sign extent
+  offset32(31 downto 26) <= (others => if_ir(23));     -- sign extent
 
   --CHECKED
   op2 <= offset32                       when branch_t = '1'                     else
@@ -575,25 +566,25 @@ begin
   alu_dest <=	 reg_pc when branch_t = '1' else if_ir(15 downto 12);
 
   -- CHECKED
-    alu_wb	 <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"0"   --AND
-                      or regop_t = '1' and if_ir(24 downto 21) = X"1"   --EOR
-                      or regop_t = '1' and if_ir(24 downto 21) = X"2"   --SUB
-                      or regop_t = '1' and if_ir(24 downto 21) = X"3"   --RSB
-                      or regop_t = '1' and if_ir(24 downto 21) = X"4"   --ADD
-                      or regop_t = '1' and if_ir(24 downto 21) = X"5"   --ADC
-                      or regop_t = '1' and if_ir(24 downto 21) = X"6"   --SBC
-                      or regop_t = '1' and if_ir(24 downto 21) = X"7"   --RSC
-                      or regop_t = '1' and if_ir(24 downto 21) = X"C"   --ORR
-                      or regop_t = '1' and if_ir(24 downto 21) = X"D"   --MOV
-                      or regop_t = '1' and if_ir(24 downto 21) = X"E"   --BIC
-                      or regop_t = '1' and if_ir(24 downto 21) = X"F"   --MNV
+    alu_wb	 <= '1' when (regop_t = '1' and if_ir(24 downto 21) = X"0")   --AND
+                      or (regop_t = '1' and if_ir(24 downto 21) = X"1")   --EOR
+                      or (regop_t = '1' and if_ir(24 downto 21) = X"2")   --SUB
+                      or (regop_t = '1' and if_ir(24 downto 21) = X"3")   --RSB
+                      or (regop_t = '1' and if_ir(24 downto 21) = X"4")   --ADD
+                      or (regop_t = '1' and if_ir(24 downto 21) = X"5")   --ADC
+                      or (regop_t = '1' and if_ir(24 downto 21) = X"6")   --SBC
+                      or (regop_t = '1' and if_ir(24 downto 21) = X"7")   --RSC
+                      or (regop_t = '1' and if_ir(24 downto 21) = X"C")   --ORR
+                      or (regop_t = '1' and if_ir(24 downto 21) = X"D")   --MOV
+                      or (regop_t = '1' and if_ir(24 downto 21) = X"E")   --BIC
+                      or (regop_t = '1' and if_ir(24 downto 21) = X"F")   --MNV
                   else '0';
 
   -- CHECKED
-      flag_wb	<=  '1' when regop_t = '1' and if_ir(24 downto 21) = X"8" --TST
-                          or regop_t = '1' and if_ir(24 downto 21) = X"9" --TEQ
-                          or regop_t = '1' and if_ir(24 downto 21) = X"A" --CMP
-                          or regop_t = '1' and if_ir(24 downto 21) = X"B" --CMN
+      flag_wb	<=  '1' when (regop_t = '1' and if_ir(24 downto 21) = X"8") --TST
+                          or (regop_t = '1' and if_ir(24 downto 21) = X"9") --TEQ
+                          or (regop_t = '1' and if_ir(24 downto 21) = X"A") --CMP
+                          or (regop_t = '1' and if_ir(24 downto 21) = X"B") --CMN
                       else if_ir(20);
 
 -- reg read
@@ -647,17 +638,21 @@ begin
 
 -- Shifter command
 --CHECKED
-    shift_is_zero <= regop_t = '1'                  -- regop
-                     and                            -- and
+    shift_is_zero <= regop_t = '1'                      -- regop
+                     and                                -- and
                      (
-                        (if_ir(25) = '0'            -- -- op2 is register 
-                        and                         -- -- and shift = 0
-                        (if_ir(4)='0' and (if_ir(11 downto 7) = "00000") or (if_ir(4)='1' and rdata3 = x"00000000")))
-                     or                             -- or
-                        (if_ir(4)='1'               -- -- op2 is immediate
-                        and                         -- -- and
-                        if_ir(11 downto 8)="0000")  -- -- shift = 0
-                    );
+                        (
+                          if_ir(25) = '0'               -- -- op2 is register 
+                          and                           -- -- and shift = 0
+                          ((if_ir(4)='0' and (if_ir(11 downto 7)="00000")) or (if_ir(4)='1' and rdata3=x"00000000"))
+                        )
+                        or                              -- or
+                        (
+                          if_ir(4)='1'                  -- -- op2 is immediate
+                          and                           -- -- and
+                          if_ir(11 downto 8)="0000"     -- -- shift = 0
+                        )
+                     );
     shift_lsl <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "00" else '0';
     shift_lsr <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "01" else '0';
 	shift_asr <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "10" else '0';

@@ -66,6 +66,11 @@ do
     add_entity $file
 done
 
+# Add "manually" the main_tb to the makefile
+echo -e "main_tb : ../src/main_tb/main_tb.o ../lib/arm_ghdl.o" >> $destfile
+echo -e "\tghdl -e -v -Wl,../lib/mem.o -Wl,../lib/arm_ghdl.o -Wl,../lib/ElfObj.o main_tb" >> $destfile
+echo -e "" >> $destfile
+
 echo -e "clean:" >> $destfile
 echo -e "\trm *.o" >> $destfile
 echo -e "\trm *.cf" >> $destfile

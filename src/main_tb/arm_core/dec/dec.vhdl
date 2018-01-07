@@ -768,23 +768,41 @@ process (cur_state, dec2if_full, cond, condv, operv, dec2exe_full, if2dec_empty,
 			branch_t, and_i, eor_i, sub_i, rsb_i, add_i, adc_i, sbc_i, rsc_i, orr_i, mov_i, bic_i,
 			mvn_i, ldr_i, ldrb_i, ldm_i, stm_i, if_ir, mtrans_rd, mtrans_mask_shift)
 begin
-	case cur_state is
+    case cur_state is
+        -- CHECKED
+        when FETCH =>
+            debug_state <= X"1";
+            dec2if_push <= '0';
+            if2dec_pop <= '0';
+            dec2exe_push <= '0';
+            blink <= '0';
+            mtrans_shift <= '0';
+            mtrans_loop_adr <= '0';
 
-	when FETCH =>
-		debug_state <= X"1";
-		if2dec_pop <= '0';
-		dec2exe_push <= '0';
-		blink <= '0';
-		mtrans_shift <= '0';
-		mtrans_loop_adr <= '0';
+            if dec2if_full = '0' and reg_pcv = '1' then -- if not(T1)
+                next_state <= RUN;
+            else
+                next_state <= FETCH;
+            end if;
+        -- TODO: T4 T5 T6
+        when RUN =>
+            debug_state <= X"2";
+            if2dec_pop <= '1';
+            if dec2if_full = '0' then
+                dec2if_push <= '1';
+            end if;
 
-		if dec2if_full = '0' and reg_pcv = '1' then
-		....
-		end if;
-			
+            if if2dec_empty = '1' or dec2exe_full = '1' or operv = '0' or condv = '0' then  --T1
+                next_state <= RUN;
+            elsif cond = '0' then                                                           --T2
+                dec2exe_push = '0';
+                next_state <= RUN;
+            elsif cond = '1' then                                                           --T3
+                dec2exe_push = '1';
+                next_state <= RUN;
+            end if;
 
-	
-	end case;
+    end case;
 end process;
 
 dec_pop <= if2dec_pop;

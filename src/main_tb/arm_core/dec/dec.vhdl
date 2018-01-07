@@ -331,7 +331,7 @@ signal alu_cmd		: Std_Logic_Vector(1 downto 0);
 
 -- DECOD FSM
 
-type state_type is (FETCH, RUN, BRANCH, LINK, MTRANS);
+type state_type is (FETCH, RUN, BRANCH, LINK, MTRANS, UNDEFINED);
 signal cur_state, next_state : state_type;
 
 signal debug_state : Std_Logic_Vector(3 downto 0) := X"0";
@@ -523,7 +523,7 @@ begin
 	and_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"0" else '0';
 	eor_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"1" else '0';
 	sub_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"2" else '0';
-	rsb_t <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"3" else '0';
+	rsb_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"3" else '0';
 	add_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"4" else '0';
 	adc_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"5" else '0';
 	sbc_i <= '1' when regop_t = '1' and if_ir(24 downto 21) = X"6" else '0';
@@ -563,7 +563,7 @@ begin
          X"000000" & if_ir(7 downto 0)  when regop_t  = '1' and if_ir(25) = '1' else
          rdata2;
 
-  alu_dest <=	 reg_pc when branch_t = '1' else if_ir(15 downto 12);
+  alu_dest <=	 X"F" when branch_t = '1' else if_ir(15 downto 12);
 
   -- CHECKED
     alu_wb	 <= '1' when (regop_t = '1' and if_ir(24 downto 21) = X"0")   --AND
@@ -619,11 +619,11 @@ begin
     inval_ovr <=    if_ir(20) when regop_t = '1' and not(teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') else
                     '0';
 
--- operand validite
+-- operand validity
 -- an instruction can be executed only when read registers are deemed valid 
 --CHECKED
     operv <=	'1' when    regop_t = '1' and rvalid1 = '1' and rvalid2 ='1' and
-                            (not(if_ir(25) = '0' and if_ir(4) = '1') or rvalid3) else -- use of Rs
+                            (not((if_ir(25) = '0') and (if_ir(4) = '1')) or rvalid3 = '1') else -- use of Rs
 				'0';
 
 -- Decode to mem interface 
@@ -638,26 +638,28 @@ begin
 
 -- Shifter command
 --CHECKED
-    shift_is_zero <= regop_t = '1'                      -- regop
+    shift_is_zero <= '1' when
+                     (regop_t = '1')                    -- regop
                      and                                -- and
                      (
                         (
-                          if_ir(25) = '0'               -- -- op2 is register 
+                          (if_ir(25) = '0')             -- -- op2 is register 
                           and                           -- -- and shift = 0
-                          ((if_ir(4)='0' and (if_ir(11 downto 7)="00000")) or (if_ir(4)='1' and rdata3=x"00000000"))
+                          (((if_ir(4)='0') and (if_ir(11 downto 7)="00000")) or ((if_ir(4)='1') and (rdata3=x"00000000")))
                         )
                         or                              -- or
                         (
-                          if_ir(4)='1'                  -- -- op2 is immediate
+                          (if_ir(4)='1')                -- -- op2 is immediate
                           and                           -- -- and
-                          if_ir(11 downto 8)="0000"     -- -- shift = 0
+                          (if_ir(11 downto 8)="0000")   -- -- shift = 0
                         )
-                     );
+                     )
+                     else '0';
     shift_lsl <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "00" else '0';
     shift_lsr <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "01" else '0';
 	shift_asr <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "10" else '0';
-    shift_rrx <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "11" and shift_is_zero else '0';
-    shift_ror <= '1' when if_ir(25) = '1' or (if_ir(25) = '0' and if_ir(6 downto 5) = "11" and not(shift_is_zero)) else '0';
+    shift_rrx <= '1' when if_ir(25) = '0' and if_ir(6 downto 5) = "11" and shift_is_zero = '1' else '0';
+    shift_ror <= '1' when if_ir(25) = '1' or (if_ir(25) = '0' and if_ir(6 downto 5) = "11" and shift_is_zero = '0') else '0';
                   
 	shift_val <= "00010" when branch_t = '1' else
                                                                                                    -- regop cases :
@@ -699,7 +701,7 @@ begin
 	process (ck)
 	begin
 		if (rising_edge(ck)) then
-		....
+		--....
 		end if;
 	end process;
 
@@ -795,13 +797,19 @@ begin
             if if2dec_empty = '1' or dec2exe_full = '1' or operv = '0' or condv = '0' then  --T1
                 next_state <= RUN;
             elsif cond = '0' then                                                           --T2
-                dec2exe_push = '0';
+                dec2exe_push <= '0';
                 next_state <= RUN;
             elsif cond = '1' then                                                           --T3
-                dec2exe_push = '1';
+                dec2exe_push <= '1';
                 next_state <= RUN;
             end if;
 
+        when others =>
+            debug_state <= X"0";
+            if2dec_pop <= '0';
+            dec2if_push <= '0';
+            dec2exe_push <= '0';
+            next_state <= UNDEFINED;
     end case;
 end process;
 

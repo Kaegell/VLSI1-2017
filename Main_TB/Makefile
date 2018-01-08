@@ -18,7 +18,7 @@ main_tb.o : main_tb.vhdl icache.o dcache.o ram.o
 arm_core.o : arm_core.vhdl ifetch.o decod.o exec.o mem.o
 	${GHDL} -a ${GHDL_OP} arm_core.vhdl
 	
-ifetch.o : ifetch.vhdl fifo_generic.o
+ifetch.o : ifetch.vhdl
 	${GHDL} -a ${GHDL_OP} ifetch.vhdl
 
 decod.o : ../DECOD/decod.vhdl fifo_32b.o fifo_127b.o reg.o

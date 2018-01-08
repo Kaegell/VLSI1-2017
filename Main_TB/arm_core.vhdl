@@ -185,7 +185,7 @@ Component EXec
 			exe_flag_wb		: out Std_Logic; -- CSPR modifiy
 
 	-- Mem interface
-			exe_mem_adr		: out Std_Logic_Vector(31 downto 0); -- Alu res register
+			exe_mem_adr		: inout Std_Logic_Vector(31 downto 0); -- Alu res register
 			exe_mem_data	: out Std_Logic_Vector(31 downto 0);
 			exe_mem_dest	: out Std_Logic_Vector(3 downto 0);
 

@@ -74,7 +74,6 @@ architecture Reg of Reg is
     signal zero_sig : std_logic;
     signal neg_sig : std_logic;
     signal ovr_sig : std_logic;
-    signal pc_sig: unsigned (31 downto 0);
 begin
     process(ck)
     begin
@@ -94,16 +93,14 @@ begin
             -- PC increment operator
             -- if inval_regs(15) = '1' and inc_pc = '1' then
             if inc_pc = '1' then
-                pc_sig <= to_unsigned(to_integer(unsigned(registers(15))) + 4, pc_sig'length);
+                registers(15) <= std_logic_vector(to_unsigned(to_integer(unsigned(registers(15))) + 4, 32));
                 --inval_regs(15) <= '0';
-            else
-                pc_sig <= unsigned(registers(15));
+            --else
+                --pc_sig <= unsigned(registers(15));
             end if;
 
             -- PC setup and remapping to output
-            registers(15) <= std_logic_vector(pc_sig);
-            reg_pc <= registers(15);
-            reg_pcv <= '1'; --not inval_regs(15);
+            reg_pcv <= not inval_regs(15);
 
             -- Rd1 writeback
             reg_rd1 <= registers(to_integer(unsigned(radr1))); 
@@ -155,4 +152,5 @@ begin
             end if;
         end if;
     end process;
+    reg_pc <= registers(15);
 end architecture;

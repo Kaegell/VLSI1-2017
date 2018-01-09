@@ -1,6 +1,7 @@
 *.swp
 *.swo
 *.cf
+*.o
 build/vcd
 work/
 bin/

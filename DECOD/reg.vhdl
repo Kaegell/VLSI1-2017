@@ -81,6 +81,9 @@ begin
         -- Invalidate all registers when reset (asynchronously)
         if reset_n = '0' then
             inval_regs(0 to 15) <= (others => '0');
+            -- Registers init.
+            registers(15) <= X"00000000";
+            reg_pcv <= '1';
 
         elsif rising_edge(ck) then
 
@@ -89,9 +92,10 @@ begin
             inval_regs(to_integer(unsigned(inval_adr2)))<= inval2;
 
             -- PC increment operator
-            if inval_regs(15) = '1' and inc_pc = '1' then
+            -- if inval_regs(15) = '1' and inc_pc = '1' then
+            if inc_pc = '1' then
                 pc_sig <= to_unsigned(to_integer(unsigned(registers(15))) + 4, pc_sig'length);
-                inval_regs(15) <= '0';
+                --inval_regs(15) <= '0';
             else
                 pc_sig <= unsigned(registers(15));
             end if;
@@ -99,19 +103,19 @@ begin
             -- PC setup and remapping to output
             registers(15) <= std_logic_vector(pc_sig);
             reg_pc <= registers(15);
-            reg_pcv <= inval_regs(15);
+            reg_pcv <= '1'; --not inval_regs(15);
 
             -- Rd1 writeback
             reg_rd1 <= registers(to_integer(unsigned(radr1))); 
-            reg_v1 <= inval_regs(to_integer(unsigned(radr1)));
+            reg_v1 <= not inval_regs(to_integer(unsigned(radr1)));
 
             -- Rd2 writeback
             reg_rd2 <= registers(to_integer(unsigned(radr2))); 
-            reg_v2 <= inval_regs(to_integer(unsigned(radr2)));
+            reg_v2 <= not inval_regs(to_integer(unsigned(radr2)));
 
             -- Rd3 writeback
             reg_rd3 <= registers(to_integer(unsigned(radr3))); 
-            reg_v3 <= inval_regs(to_integer(unsigned(radr3)));
+            reg_v3 <= not inval_regs(to_integer(unsigned(radr3)));
 
             -- EXEC/MEM Write-back priority handling
             -- (if writeback from EXEC, ignore writeback

@@ -52,4 +52,4 @@ main_tb : main_tb.o ram.o icache.o dcache.o arm_core.o ${C_MOD_DIR}/lib/arm_ghdl
 	${GHDL} -e ${GHDL_OP} -Wl,${C_MOD_DIR}/lib/mem.o -Wl,${C_MOD_DIR}/lib/arm_ghdl.o -Wl,${C_MOD_DIR}/ReadElf/lib/ElfObj.o main_tb
 
 clean :
-	rm *.o main_tb work-obj93.cf *.vcd
+	rm -f *.o main_tb work-obj93.cf *.vcd

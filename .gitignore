@@ -5,4 +5,9 @@
 build/vcd
 work/
 bin/
-
+C_model/ReadElf/bin/ReadElf
+C_model/ReadElf/src/ReadElf
+C_model/bin/arm_sim
+C_model/src/arm_sim
+C_model/src/test_decod
+Main_TB/main_tb

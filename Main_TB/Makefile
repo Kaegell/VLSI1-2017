@@ -53,3 +53,5 @@ main_tb : main_tb.o ram.o icache.o dcache.o arm_core.o ${C_MOD_DIR}/lib/arm_ghdl
 
 clean :
 	rm -f *.o main_tb work-obj93.cf *.vcd
+run : main_tb
+	./main_tb ../Test_Prog/S/test_b --vcd=main_tb.wve 2> main_tb.log

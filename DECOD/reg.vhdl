@@ -82,7 +82,13 @@ begin
             inval_regs(0 to 15) <= (others => '0');
             -- Registers init.
             registers(15) <= X"00000000";
-            reg_pcv <= '1';
+            reg_pcv   <= '1';
+            reg_cry   <= '0';
+            reg_zero  <= '1';
+            reg_neg   <= '0';
+            reg_ovr   <= '0';
+            reg_cznv  <= '0';
+            reg_vv    <= '1';
 
         elsif rising_edge(ck) then
 

@@ -340,11 +340,11 @@ begin
 
 	dec2exec : fifo_127b
 	port map (	din(126) => pre_index,
-					din(125 downto 94) => op1,
-					din(93 downto 62)	 => op2,
-					din(61 downto 58)	 => alu_dest,
-					din(57)	 => alu_wb,
-					din(56)	 => flag_wb,
+					din(125)	 => alu_wb,
+					din(124)	 => flag_wb,
+					din(123 downto 92) => op1,
+					din(91 downto 60)	 => op2,
+					din(59 downto 56)	 => alu_dest,
 
 					din(55 downto 24)	 => rdata3,
 					din(23 downto 20)	 => ld_dest,
@@ -368,11 +368,11 @@ begin
 					din(1 downto 0)	 => alu_cmd,
 
 					dout(126)	 => dec_pre_index,
-					dout(125 downto 94)	 => dec_op1,
-					dout(93 downto 62)	 => dec_op2,
-					dout(61 downto 58)	 => dec_exe_dest,
-					dout(57)	 => dec_exe_wb,
-					dout(56)	 => dec_flag_wb,
+					dout(125)	 => dec_exe_wb,
+					dout(124)	 => dec_flag_wb,
+					dout(123 downto 92)	 => dec_op1,
+					dout(91 downto 60)	 => dec_op2,
+					dout(59 downto 56)	 => dec_exe_dest,
 
 					dout(55 downto 24)	 => dec_mem_data,
 					dout(23 downto 20)	 => dec_mem_dest,
@@ -540,6 +540,13 @@ begin
 -- mult instruction
 
 -- trans instruction
+-- Even if we're doing only regops right now, we need to setup these,
+-- because they set mem_lw, mem_sw... that pass through EXE
+
+  ldr_i   <= '1' when trans_t = '1' and if_ir(20) = '1' and if_ir(22) = '0' else '0'; -- load word
+  ldrb_i  <= '1' when trans_t = '1' and if_ir(20) = '1' and if_ir(22) = '1' else '0'; -- load byte
+  str_i   <= '1' when trans_t = '1' and if_ir(20) = '0' and if_ir(22) = '0' else '0'; -- store word
+  strb_i  <= '1' when trans_t = '1' and if_ir(20) = '0' and if_ir(22) = '1' else '0'; -- store byte
 
 -- mtrans instruction
 
@@ -630,6 +637,8 @@ begin
 --CHECKED
     ld_dest <= if_ir(15 downto 12);
     pre_index <=if_ir(24);
+
+  mem_data <= x"00000000" when trans_t='0' else x"00000000";  -- temporary set mem_data just to test regops
 
 	mem_lw <= ldr_i;
 	mem_lb <= ldrb_i;

@@ -610,24 +610,30 @@ begin
 -- Reg Invalid
 --CHECKED
 
-  inval_exe_adr <=  if_ir(11 downto  8) when regop_t = '1' else
-					if_ir(15 downto 12);
+  inval_exe_adr     <=    if_ir(11 downto  8)   when regop_t = '1'
+                    else  if_ir(15 downto 12);
 
-	inval_exe <= '1'	when regop_t = '1' and not (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') else
-						'0';
+  inval_exe         <=    '1'                   when regop_t = '1'
+                                                and
+                                                not (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1')
+                    else  '0';
 
-    inval_mem_adr <=	if_ir(15 downto 12) when trans_t = '1' else
-						mtrans_rd;
+  inval_mem_adr     <=    if_ir(15 downto 12)   when trans_t = '1'
+                    else  mtrans_rd;
 
-	inval_mem <=	'1'	when		trans_t = '1' and (ldr_i='1' or ldrb_i='1')	else
-					'0';
+  inval_mem         <=    '1'                   when trans_t = '1' and (ldr_i='1' or ldrb_i='1')
+                    else  '0';
 
-    inval_czn <=    '1' when regop_t = '1' and (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') else 
-                    if_ir(20);                          -- S flag
+  inval_czn         <=    '1'                   when regop_t = '1'
+                                                and
+                                                (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1')
+                    else  if_ir(20);  -- S flag
 			
 
-    inval_ovr <=    if_ir(20) when regop_t = '1' and not(teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') else
-                    '0';
+  inval_ovr         <=    if_ir(20)             when regop_t = '1'
+                                                and
+                                                not(teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1')
+                    else  '0';
 
 -- operand validity
 -- an instruction can be executed only when read registers are deemed valid 

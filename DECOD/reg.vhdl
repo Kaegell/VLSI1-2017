@@ -112,9 +112,25 @@ begin
         elsif rising_edge(ck) then
 
             -- =================================  INVALIDATION  ===================================
+            -- --------------------------------------------------
+            -- | inval1  |  wen1  ||  valid1(t)   | invalid1(t) |
+            -- |---------|--------||--------------|-------------|
+            -- |      0  |     0  ||  valid1(t-1) | invalid1(t) |
+            -- |      0  |     1  ||            1 |           0 |
+            -- |      1  |     0  ||            0 |           1 |
+            -- |      1  |     1  ||            0 |           1 |
+            -- --------------------------------------------------
+
             -- Invalidate registers (from DECOD)
-            -- inval_regs(to_integer(unsigned(inval_adr1)))<= inval1;
-            -- inval_regs(to_integer(unsigned(inval_adr2)))<= inval2;
+            if (inval1 = '1' or wen1 = '1')
+            then
+              inval_regs(to_integer(unsigned(inval_adr1))) <= inval1;
+            end if;
+
+            if (inval2 = '1' or wen2 = '1')
+            then
+              inval_regs(to_integer(unsigned(inval_adr2))) <= inval2;
+            end if;
 
             -- ======================================  PC  ========================================
             -- PC increment operator

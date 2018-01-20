@@ -610,12 +610,19 @@ begin
 -- Reg Invalid
 --CHECKED
 
-  inval_exe_adr     <=    if_ir(11 downto  8)   when regop_t = '1'
+  -- The destination register is always Rd
+  inval_exe_adr     <=    if_ir(19 downto 16)   when mult_t = '1'
+                 -- else  x"F"                  when branch_t = '1'  (we'll take care of branches later...)
                     else  if_ir(15 downto 12);
 
-  inval_exe         <=    '1'                   when regop_t = '1'
-                                                and
-                                                not (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1')
+  inval_exe         <=    '1'                   when
+                                                (
+                                                  regop_t = '1'
+                                                  and
+                                                  not (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1')
+                                                )
+                                             -- or
+                                             -- branch_t = '1'   (we'll take care of branches later...)
                     else  '0';
 
   inval_mem_adr     <=    if_ir(15 downto 12)   when trans_t = '1'

@@ -596,13 +596,16 @@ begin
 
 -- reg read
 -- CHECKED
-  radr1 <= if_ir(15 downto 12) when mult_t = '1' else   -- Rd
-           if_ir(19 downto 16);                         -- Rn
+  -- radr1 = Rn
+  radr1 <= if_ir(15 downto 12) when mult_t = '1' else
+           if_ir(19 downto 16);
 				
-  radr2 <= if_ir(3 downto 0);                           -- Rm
+  -- radr2 = Rm
+  radr2 <= if_ir(3 downto 0);
 
-  radr3 <= if_ir(11 downto  8) when regop_t = '1' else  -- Rs (most cases for regop)
-           if_ir(15 downto 12);                         -- Rd (source register for STR)
+  -- radr3 = Rs for regop and mult, Rd otherwise
+  radr3 <= if_ir(11 downto  8) when regop_t = '1' or mult_t = '1' else
+           if_ir(15 downto 12);
 
 -- Reg Invalid
 --CHECKED

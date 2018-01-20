@@ -682,24 +682,24 @@ begin
 
 -- Alu operand selection
 -- CHECKED
-	comp_op1	<= '1' when rsb_i = '1'
-                        or  rsc_i = '1'
-                        or  mov_i = '1'
-                        or  mvn_i = '1'
-                    else '0';
-	comp_op2	<=	'1' when sub_i = '1'
-                         or  sbc_i = '1'
-                         or  cmp_i = '1'
-                    else '0';
+  comp_op1  <= '1'    when rsb_i = '1'
+                        or rsc_i = '1'
+          else '0';
 
-	alu_cy <= '1'   when sub_i = '1'
-                      or rsb_i = '1'
-                      or cmp_i = '1'
-    else
-              exe_c when adc_i = '1'
-                      or sbc_i = '1'
-                      or rsc_i = '1'
-    else '0';
+  comp_op2  <= '1'    when sub_i = '1'
+                        or sbc_i = '1'
+                        or cmp_i = '1'
+                        or bic_i = '1'
+                        or mvn_i = '1'
+          else '0';
+
+  alu_cy    <= '1'    when sub_i = '1'
+                        or rsb_i = '1'
+                        or cmp_i = '1'
+          else exe_c  when adc_i = '1'
+                        or sbc_i = '1'
+                        or rsc_i = '1'
+          else '0';
 
 -- Alu command
 --CHECKED

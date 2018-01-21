@@ -104,16 +104,19 @@ component reg
 		reg_rd1		: out Std_Logic_Vector(31 downto 0);
 		radr1			: in Std_Logic_Vector(3 downto 0);
 		reg_v1		: out Std_Logic;
+		reg_wb1		: out Std_Logic;
 
 	-- Read Port 2 32 bits
 		reg_rd2		: out Std_Logic_Vector(31 downto 0);
 		radr2			: in Std_Logic_Vector(3 downto 0);
 		reg_v2		: out Std_Logic;
+		reg_wb2		: out Std_Logic;
 
 	-- Read Port 3 32 bits
 		reg_rd3		: out Std_Logic_Vector(31 downto 0);
 		radr3			: in Std_Logic_Vector(3 downto 0);
 		reg_v3		: out Std_Logic;
+		reg_wb3		: out Std_Logic;
 
 	-- read CSPR Port
 		reg_cry		: out Std_Logic;
@@ -275,14 +278,17 @@ signal mtrans_rd : Std_Logic_Vector(3 downto 0);
 signal radr1 : Std_Logic_Vector(3 downto 0);
 signal rdata1 : Std_Logic_Vector(31 downto 0);
 signal rvalid1 : Std_Logic;
+signal reg_wb1 : std_logic;
 
 signal radr2 : Std_Logic_Vector(3 downto 0);
 signal rdata2 : Std_Logic_Vector(31 downto 0);
 signal rvalid2 : Std_Logic;
+signal reg_wb2 : std_logic;
 
 signal radr3 : Std_Logic_Vector(3 downto 0);
 signal rdata3 : Std_Logic_Vector(31 downto 0);
 signal rvalid3 : Std_Logic;
+signal reg_wb3 : std_logic;
 
 -- RF inval ports
 signal inval_exe_adr : Std_Logic_Vector(3 downto 0);
@@ -464,14 +470,17 @@ begin
 					reg_rd1		=> rdata1,
 					radr1			=> radr1,
 					reg_v1		=> rvalid1,
+          reg_wb1   => reg_wb1,
                                           
 					reg_rd2		=> rdata2,
 					radr2			=> radr2,
 					reg_v2		=> rvalid2,
+          reg_wb2   => reg_wb2,
                                           
 					reg_rd3		=> rdata3,
 					radr3			=> radr3,
 					reg_v3		=> rvalid3,
+          reg_wb3   => reg_wb3,
                                           
 					reg_cry		=> cry,
 					reg_zero		=> zero,
@@ -669,11 +678,19 @@ begin
 
 -- operand validity
 -- an instruction can be executed only when read registers are deemed valid 
+-- We can consider a register valid even when its validity bit is 0, that happens when
+-- an instruction reads and writes a same register : it invalidates it but even once it gets written back,
+-- since the invalidation supersedes in REG we'll never see its validity bit going to 1,
+-- (this is a situation of signal ingored hence never received)
+-- In order not to get stuck, watch the reg_wb bits : operands are valid when validity bit = 1
+-- OR WHEN IT'S BEEN WRITTEN BACK LAST CYCLE AND GOT INVALIDATED BACK BY THE CURRENT INSTRUCTION
+--
 --CHECKED
     operv  <= '1' when    regop_t = '1'
-                          and rvalid1 = '1'                                             -- Rn is valid
-                          and ( rvalid2 = '1' or if_ir(25) = '0')                       -- Rm is valid or unused
-                          and ( rvalid3 = '1' or (if_ir(25) = '0' and if_ir(4) = '0'))  -- Rs is valid or unused
+                          and ( rvalid1 = '1' or reg_wb1 = '1')                      -- Rn is valid
+                          and ( rvalid2 = '1' or reg_wb2 = '1' or if_ir(25) = '1')   -- Rm is valid or unused
+                          and ( rvalid3 = '1' or reg_wb3 = '1' or (if_ir(25) = '1'   -- Rs is valid or unused
+                                or if_ir(4) = '1'))
          else '1' when    regop_t = '0'
 				 else '0';
 

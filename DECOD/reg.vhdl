@@ -25,16 +25,19 @@ entity Reg is
             reg_rd1		: out Std_Logic_Vector(31 downto 0);
             radr1			: in Std_Logic_Vector(3 downto 0);
             reg_v1		: out Std_Logic;
+            reg_wb1   : out std_logic;
 
         -- Read Port 2 32 bits
             reg_rd2		: out Std_Logic_Vector(31 downto 0);
             radr2			: in Std_Logic_Vector(3 downto 0);
             reg_v2		: out Std_Logic;
+            reg_wb2   : out std_logic;
 
         -- Read Port 3 32 bits
             reg_rd3		: out Std_Logic_Vector(31 downto 0);
             radr3			: in Std_Logic_Vector(3 downto 0);
             reg_v3		: out Std_Logic;
+            reg_wb3   : out std_logic;
 
         -- read CSPR Port
             reg_cry		: out Std_Logic;
@@ -70,6 +73,7 @@ architecture Reg of Reg is
     type REG_array is array (0 to 15) of std_logic_vector (31 downto 0);
     signal registers : REG_array;
     signal inval_regs: std_logic_vector (0 to 15);
+    signal wb_regs : std_logic_vector(0 to 15);
     signal cry_sig : std_logic;
     signal zero_sig : std_logic;
     signal neg_sig : std_logic;
@@ -93,11 +97,13 @@ architecture Reg of Reg is
 begin
     process(ck)
     variable var_inval_regs : std_logic_vector (0 to 15);
+    variable var_wb_regs   : std_logic_vector (0 to 15);
     begin
         -- Invalidate all registers when reset (asynchronously)
         if reset_n = '0' then
             inval_regs(0 to 15) <= (others => '0');
             var_inval_regs(0 to 15) := (others => '0');
+            var_wb_regs(0 to 15) := (others => '0');
             -- Registers init.
             registers(15) <= X"00000000";
             reg_pcv   <= '1';
@@ -161,15 +167,20 @@ begin
             -- we take EXE's value, EXE is prioritary.
 
             -- EXE writeback
+            var_wb_regs(0 to 15) := (others => '0');
             if wen1 = '1'                           -- if EXE wants to write back
             then
               registers(to_integer(unsigned(wadr1))) <= wdata1;
+              var_wb_regs(to_integer(unsigned(wadr1))) := '1';
             end if;
 
             if wen2 = '1' and not (wadr1 = wadr2)   -- If MEM wants to write back
             then
               registers(to_integer(unsigned(wadr2))) <= wdata2;
+              var_wb_regs(to_integer(unsigned(wadr2))) := '1';
             end if;
+
+            wb_regs <= var_wb_regs;
 
             -- EXEC/MEM Write-back priority handling
             -- (if writeback from EXEC, ignore writeback
@@ -219,14 +230,17 @@ begin
     -- Rd1 writeback
     reg_rd1 <= registers(to_integer(unsigned(radr1)));
     reg_v1 <= not inval_regs(to_integer(unsigned(radr1)));
+    reg_wb1 <= wb_regs(to_integer(unsigned(radr1)));
 
     -- Rd2 writeback
     reg_rd2 <= registers(to_integer(unsigned(radr2)));
     reg_v2 <= not inval_regs(to_integer(unsigned(radr2)));
+    reg_wb2 <= wb_regs(to_integer(unsigned(radr2)));
 
     -- Rd3 writeback
     reg_rd3 <= registers(to_integer(unsigned(radr3)));
     reg_v3 <= not inval_regs(to_integer(unsigned(radr3)));
+    reg_wb3 <= wb_regs(to_integer(unsigned(radr3)));
 
     -- Assign register array to signals, in order to be able to see the registers in gtkwave
     r0 <= registers(0);

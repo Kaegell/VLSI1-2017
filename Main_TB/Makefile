@@ -21,7 +21,7 @@ arm_core.o : arm_core.vhdl ifetch.o decod.o exec.o mem.o
 ifetch.o : ifetch.vhdl
 	${GHDL} -a ${GHDL_OP} ifetch.vhdl
 
-decod.o : ../DECOD/decod.vhdl fifo_32b.o fifov2.o reg.o
+decod.o : ../DECOD/decod.vhdl fifo_32b.o fifo_127b.o fifov2.o reg.o
 	${GHDL} -a ${GHDL_OP} ../DECOD/decod.vhdl
 
 reg.o : ../DECOD/reg.vhdl 

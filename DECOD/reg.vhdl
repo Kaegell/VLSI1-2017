@@ -92,10 +92,12 @@ architecture Reg of Reg is
     signal r15 : std_logic_vector (31 downto 0);
 begin
     process(ck)
+    variable var_inval_regs : std_logic_vector (0 to 15);
     begin
         -- Invalidate all registers when reset (asynchronously)
         if reset_n = '0' then
             inval_regs(0 to 15) <= (others => '0');
+            var_inval_regs(0 to 15) := (others => '0');
             -- Registers init.
             registers(15) <= X"00000000";
             reg_pcv   <= '1';
@@ -112,6 +114,7 @@ begin
         elsif rising_edge(ck) then
 
             -- =================================  INVALIDATION  ===================================
+            -- Future state of a register depending on whether it's gonna be written/invalidated :
             -- --------------------------------------------------
             -- | inval1  |  wen1  ||  valid1(t)   | invalid1(t) |
             -- |---------|--------||--------------|-------------|
@@ -120,17 +123,27 @@ begin
             -- |      1  |     0  ||            0 |           1 |
             -- |      1  |     1  ||            0 |           1 |
             -- --------------------------------------------------
+            -- N.B. In case a register gets written AND invalidated, the invalidation supersedes
 
-            -- Invalidate registers (from DECOD)
-            if (inval1 = '1' or wen1 = '1')
-            then
-              inval_regs(to_integer(unsigned(inval_adr1))) <= inval1;
+            -- Validate written registers
+            if (wen1 = '1') then
+              var_inval_regs(to_integer(unsigned(wadr1))) := '0';
             end if;
 
-            if (inval2 = '1' or wen2 = '1')
-            then
-              inval_regs(to_integer(unsigned(inval_adr2))) <= inval2;
+            if (wen2 = '1') then
+              var_inval_regs(to_integer(unsigned(wadr2))) := '0';
             end if;
+
+            -- Invalidate to-be-written registers
+            if (inval1 = '1') then
+              var_inval_regs(to_integer(unsigned(inval_adr1))) := '1';
+            end if;
+
+            if (inval2 = '1') then
+              var_inval_regs(to_integer(unsigned(inval_adr2))) := '1';
+            end if;
+
+            inval_regs <= var_inval_regs;
 
             -- ======================================  PC  ========================================
             -- PC increment operator

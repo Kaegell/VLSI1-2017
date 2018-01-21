@@ -168,10 +168,6 @@ Architecture Exec OF Exec IS
             full      : out std_logic;
             empty     : out std_logic;
 
-            debug_head : out std_logic_vector(3 downto 0);
-            debug_tail : out std_logic_vector(3 downto 0);
-            debug_size : out std_logic_vector(3 downto 0);
-
             reset_n   : in  std_logic;
             ck        : in  std_logic;
             vdd       : in  bit;
@@ -237,7 +233,7 @@ BEGIN
                  vdd		=> vdd);
 
     -- FIFO handling
-    exec2mem : fifov2 
+    exec2mem : fifo_72b
     PORT MAP (
     din(71)				=> dec_mem_lw,
     din(70)				=> dec_mem_lb,
@@ -269,19 +265,21 @@ BEGIN
     vdd					=> vdd,
     vss					=> vss);
 
-    fifo_handler_inst : fifo_handler
-    port map (
-    i_pushes      => i_pushes,
-    i_stagnant    => i_stagnant,
-    empty         => dec2exe_empty,
-    full          => exe2mem_full,
-    push          => exe2mem_push,
-    pop           => exe_pop,
-    ck            => ck,
-    reset_n       => reset_n,
-    vdd           => vdd,
-    vss           => vss);
+    --fifo_handler_inst : fifo_handler
+    --port map (
+    --i_pushes      => i_pushes,
+    --i_stagnant    => i_stagnant,
+    --empty         => dec2exe_empty,
+    --full          => exe2mem_full,
+    --push          => exe2mem_push,
+    --pop           => exe_pop,
+    --ck            => ck,
+    --reset_n       => reset_n,
+    --vdd           => vdd,
+    --vss           => vss);
     -- end of FIFO handling
+    exe_pop <= not dec2exe_empty;
+    exe2mem_push <= '0';
 
     exe_dest <= dec_exe_dest;
     exe_wb <= dec_exe_wb;

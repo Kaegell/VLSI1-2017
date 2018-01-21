@@ -146,6 +146,31 @@ component reg
 end component;
 
 component fifo_127b
+  port(
+		din		: in std_logic_vector(126 downto 0);
+		dout		: out std_logic_vector(126 downto 0);
+
+		-- commands
+		push		: in std_logic;
+		pop		: in std_logic;
+
+		-- flags
+		full		: out std_logic;
+		empty		: out std_logic;
+
+		reset_n	: in std_logic;
+		ck			: in std_logic;
+		vdd		: in bit;
+		vss		: in bit
+	);
+end component;
+
+
+component fifov2
+  generic(
+    LENGTH    : integer;
+    CAPACITY  : integer
+    );
 	port(
 		din		: in std_logic_vector(126 downto 0);
 		dout		: out std_logic_vector(126 downto 0);
@@ -339,6 +364,10 @@ signal debug_state : Std_Logic_Vector(3 downto 0) := X"0";
 begin
 
 	dec2exec : fifo_127b
+  --generic map (
+    --CAPACITY  => 4,
+    --LENGTH    => 127
+    --)
 	port map (	din(126) => pre_index,
 					din(125)	 => alu_wb,
 					din(124)	 => flag_wb,

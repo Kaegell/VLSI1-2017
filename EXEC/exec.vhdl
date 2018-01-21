@@ -84,6 +84,7 @@ Architecture Exec OF Exec IS
     SIGNAL alu_cout_sig     : STD_LOGIC;
     SIGNAL alu_res     : STD_LOGIC_VECTOR(31 DOWNTO 0);
 
+    signal memory_access : std_logic;
     signal i_pushes : std_logic;        -- Indicates if the current instruction
                                         -- needs to push into the FIFO
     signal i_stagnant : std_logic;      -- Indicates if the current instruction
@@ -278,8 +279,15 @@ BEGIN
     --vdd           => vdd,
     --vss           => vss);
     -- end of FIFO handling
-    exe_pop <= not dec2exe_empty;
-    exe2mem_push <= '0';
+
+    memory_access <= dec_mem_lw or dec_mem_lb or dec_mem_sw or dec_mem_sb;
+    -- we pop if (1) the FIFO is not empty
+    -- and (2) if we have nothing left to push
+    -- (2) : in other words if we had nothing to push (i.e. there was no memory access to launch)
+    -- or if we are going to push
+    exe_pop <=  (not dec2exe_empty) and (not memory_access or exe2mem_push);
+    -- we push if there's a memory access to launch and if the FIFO is not full
+    exe2mem_push <= memory_access and not exe2mem_full;
 
     exe_dest <= dec_exe_dest;
     exe_wb <= dec_exe_wb;

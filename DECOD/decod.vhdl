@@ -364,10 +364,6 @@ signal debug_state : Std_Logic_Vector(3 downto 0) := X"0";
 begin
 
 	dec2exec : fifo_127b
-  --generic map (
-    --CAPACITY  => 4,
-    --LENGTH    => 127
-    --)
 	port map (	din(126) => pre_index,
 					din(125)	 => alu_wb,
 					din(124)	 => flag_wb,
@@ -674,9 +670,12 @@ begin
 -- operand validity
 -- an instruction can be executed only when read registers are deemed valid 
 --CHECKED
-    operv <=	'1' when    regop_t = '1' and rvalid1 = '1' and rvalid2 ='1' and
-                            (not((if_ir(25) = '0') and (if_ir(4) = '1')) or rvalid3 = '1') else -- use of Rs
-				'0';
+    operv  <= '1' when    regop_t = '1'
+                          and rvalid1 = '1'                                             -- Rn is valid
+                          and ( rvalid2 = '1' or if_ir(25) = '0')                       -- Rm is valid or unused
+                          and ( rvalid3 = '1' or (if_ir(25) = '0' and if_ir(4) = '0'))  -- Rs is valid or unused
+         else '1' when    regop_t = '0'
+				 else '0';
 
 -- Decode to mem interface 
 --CHECKED
@@ -842,20 +841,39 @@ begin
             end if;
         -- TODO: T4 T5 T6
         when RUN =>
-            debug_state <= X"2";
-            if2dec_pop <= '1';
-            if dec2if_full = '0' then
-                dec2if_push <= '1';
-            end if;
+            --if dec2if_full = '0' then
+                --dec2if_push <= '1';
+            --end if;
+            dec2if_push <= not dec2if_full;
 
-            if if2dec_empty = '1' or dec2exe_full = '1' or operv = '0' or condv = '0' then  --T1
+            -- If FIFOs are stuck or some metadata is invalid
+            if if2dec_empty = '1' or dec2exe_full = '1' or condv = '0' then     --T1
+                if2dec_pop <= '1';
                 next_state <= RUN;
-            elsif cond = '0' then                                                           --T2
+                debug_state <= X"2";
+
+            -- If the predicate is false, throw away the instruction
+            elsif cond = '0' then                                               --T2
+                if2dec_pop <= '1';
                 dec2exe_push <= '0';
                 next_state <= RUN;
-            elsif cond = '1' then                                                           --T3
-                dec2exe_push <= '1';
-                next_state <= RUN;
+                debug_state <= X"3";
+
+            -- If the predicate is true...
+            elsif cond = '1' then                                                --T3
+                -- If operands are valid, launch the instruction in EXE
+                if (operv = '1') then
+                    if2dec_pop <= '1';
+                    dec2exe_push <= '1';
+                    next_state <= RUN;
+                    debug_state <= X"4";
+                -- If operands are not valid, hold still, wait for write back
+                else
+                    if2dec_pop <= '0';
+                    dec2exe_push <= '0';
+                    next_state <= RUN;
+                    debug_state <= X"5";
+                end if;
             end if;
 
         when others =>

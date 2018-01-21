@@ -155,22 +155,6 @@ begin
                 --pc_sig <= unsigned(registers(15));
             end if;
 
-            -- =====================================  READ  =======================================
-            -- PC setup and remapping to output
-            reg_pcv <= not inval_regs(15);
-
-            -- Rd1 writeback
-            reg_rd1 <= registers(to_integer(unsigned(radr1))); 
-            reg_v1 <= not inval_regs(to_integer(unsigned(radr1)));
-
-            -- Rd2 writeback
-            reg_rd2 <= registers(to_integer(unsigned(radr2))); 
-            reg_v2 <= not inval_regs(to_integer(unsigned(radr2)));
-
-            -- Rd3 writeback
-            reg_rd3 <= registers(to_integer(unsigned(radr3))); 
-            reg_v3 <= not inval_regs(to_integer(unsigned(radr3)));
-
             -- =====================================  WRITE  ======================================
             -- EXE and MEM can both write back in REG at the same time,
             -- but if they both want to write the same register,
@@ -225,7 +209,24 @@ begin
             end if;
         end if;
     end process;
+    -- =====================================  READ  =======================================
+    -- The read, unlike the rest, is within-cycle, so it's out of the VHDL process
+
+    -- PC setup and remapping to output
     reg_pc <= registers(15);
+    reg_pcv <= not inval_regs(15);
+
+    -- Rd1 writeback
+    reg_rd1 <= registers(to_integer(unsigned(radr1)));
+    reg_v1 <= not inval_regs(to_integer(unsigned(radr1)));
+
+    -- Rd2 writeback
+    reg_rd2 <= registers(to_integer(unsigned(radr2)));
+    reg_v2 <= not inval_regs(to_integer(unsigned(radr2)));
+
+    -- Rd3 writeback
+    reg_rd3 <= registers(to_integer(unsigned(radr3)));
+    reg_v3 <= not inval_regs(to_integer(unsigned(radr3)));
 
     -- Assign register array to signals, in order to be able to see the registers in gtkwave
     r0 <= registers(0);

@@ -1,0 +1,162 @@
+
+Se concentrer sur :
+
+ - La demarche qu'on a eue
+ - Les etapes de conception du proco
+ - Notre implementation
+
+============================================================================================
+I - Introduction
+============================================================================================
+
+Le but de notre projet est de creer un processeur ARM
+On part d'un cahier des charges : la doc ARM,
+decrivant l'architecture du processeur a concevoir
+Il faut construire ce processeur.
+
+CDC -->  Boite noire  --> Processeur
+
+CDC :
+ - Processeur pipelined
+ - Pipeline asynchrone
+ - *Respect du jeu d'instructions*
+
+II - La demarche de conception
+
+Detaillons la boite noire
+1 - Design              crayon, papier
+2 - Modelisation        langage vhdl
+2 - Simulation, Test    ghdl, gtkwave, plateforme test.
+3 - Placement & Routage druc, cougar, lvx, tas, s2r.
+4 - Fonderie            Envoi du masque a un fondeur...
+
+============================================================================================
+III - Design
+============================================================================================
+
+------------------ Design general ----------------------------------------------------------
+
+ETUDIONS PLUS EN DETAIL LE CDC :
+
+Regops :
+lecture instruction,
+decodage instruction,
+preparation des operandes
+execution de l'operation de calcul,
+ecriture dans les registres
+
+Branchements :    
+lecture instruction,
+decodage instruction,
+*annulation des instruction qui suivent dans le pipe*
+preparation des operandes               (registre de base)
+execution de l'operation de calcul      (@ de branchement)
+ecriture dans les registres             (R15)
+
+Acces memoires :
+lecture instruction,
+decodage instruction,
+preparation des operandes               (registre de base, registre source)
+execution de l'operation de calcul,     (calcul @mem)
+ecriture dans les registres             (registre de base (wbk), registre dest)
+
+Acces memoires multiples :
+lecture instruction,
+decodage instruction,
+preparation des operandes               (registre de base, registre source)
+gestion de la boucle d'envoi
+execution de l'operation de calcul,     (calcul @mem)
+ecriture dans les registres             (registre de base (wbk), registre dest)
+
+=> Il faut pouvoir effectuer toutes les etapes de chaque instruction avec le minimum
+de materiel possible
+=> D'ou le decoupage en etages suivant : I, D, E, M
+
+[ Schema a la Pirouz ]
+
+-----------------------------------------------------------------------------------------------
+------------------ A - Design de EXE ----------------------------------------------------------
+-----------------------------------------------------------------------------------------------
+
+Quels sont tous les calculs possibles que EXE devra pouvoir realiser?
+=> Il faut que EXE puisse realiser tous les calculs necessaires a l'execution
+des instruction ARM avec le minimum de materiel possible.
+
+Dans le jeu d'instruction on a :
+  - les regops
+  - les branch
+  - les acces memoire
+
+Mais les branch et les acces memoire ont besoin de faire des additions seulement,
+et parmi les regops il existe une instruction d'addition, donc si EXE peut effectuer
+les calculs necessaire aux regops, elle pourra aussi effectuer les calculs necessaires
+aux branch et transferts memoire. Reduisons donc le probleme aux regops.
+
+Tableau :
+=> Il faut trouver une reecriture standardisee des calculs a effectuer,
+pour decomposer notre ensemble de calcul en un sous-ensemble de calculs elementaires,
+et ainsi reduire au maximum le materiel a implemnter.
+
+REGOP          CALCUL A EFFECTUER       REECRITURE STANDARDISEE
+
+=> On voit que les calculs elementaires sont :
+ADD, AND, OR, XOR, inversion des entrees prealables, ajout d'un 1
+De plus, d'apres la doc ARM, l'operande 2 peut subir un shift (lsl, lsr, asr, ror, rrx)
+Enfin, a chaque operation les flags de sortie doivent etre calcules.
+
+Avec ces deux points, une implementation de EXE est :
+[ Schema de EXE ]
+
+------------------ 2 - Design de l'ALU --------------------------------------------------------
+
+L'ALU doit pouvoir effectuer les operation ADD, AND, OR et XOR sur deux entrees,
+de plus pour l'addition elle doit pouvoir prendre en compte une retenue en entree (l'ajout d'un 1).
+[ Symbole de l'ALU vue externe ]
+
+Notre implementation de l'ALU est la suivante :
+[ Schema de l'ALU vue interne ]
+L'ALU effectue de toutes manieres les 4 operation qu'elle peut faire, mais choisit de mettre en sortie
+de resultat de l'operation qu'on lui a demande.
+Pour le calcul des flags, le bloc (=0) effectue un simple and entre tous les bits du resultat,
+le bloc (<0) verifie si le msb est a 1, et pour le bloc overflow, on regarde la sortie du ADD qui est sur 35 bits
+et on verifie si le 35eme bit est a 1.
+
+------------------ 3 Design du Shifter --------------------------------------------------------
+
+Tout comme pour l'ALU, on peut demander plusieurs choses au shifter, les operations de shift possible sont
+LSL (Logical Shift Left), LSR, ASR, ROR, RRX.
+Donc comme pour l'ALU, le shifter effectue tous les shifts possible et choisit le resultat demande :
+
+[ Schema 1 du shifter ]
+
+Puis pour realiser un LSL, on observe chaque bit de la shift value : Si le bit 0 est a 1, on decale l'operande
+de 1, puis si le bit 1 est a 1, on decale l'operande de 2 sinon on ne fait rien, si le bit n est a 1,
+on decale l'operande de 2n. Le decalage final est donc : somme des 2^k, k etant les poids des bits a 1. 
+= shift value
+Effectuer un decalage a gauche de n revient a enlever les n bits de poids forts et concatener au reste
+n zeros.
+Une logique similaire est appliquee pour implementer les LSR, ASR, ROR et RRX
+
+------------------ 4 - Ajouts sur EXE ---------------------------------------------------------
+
+Le flag C
+D'apres la doc ARM, le flag C en sortie d'une operation peut etre la carry de sortie de l'addition
+pour les regops arithmetiques ou la carry de sortie du shift pour les regops logiques.
+On place donc un multiplexer sur le flags C pour effectuer le bon choix, et on deduit le type
+de regop (arith ou logique) en regardant si l'operation demandee est un ADD ou un AND/OR/XOR.
+
+[ Schema du morceau carry de EXE ]
+
+Le pre-index / post-index
+Lors d'un acces memoire, le jeu ARM offre la possibilite de choisir si l'adresse prise en compte
+pour un acces memoire est l'adresse de base ou l'adresse de base + offset.
+Dans EXE, pour un acces memoire, l'adresse de base sera l'operande 2, et l'adresse base + offset
+sera le resultat de l'ALU (qui effectue un ADD), on choisit donc entre ces deux signaux
+pour implementer le pre-index/post-index
+
+[ Schema de la partie pre-index de EXE ]
+
+
+B - Design des FIFOs : Interfacage entre les etages
+
+

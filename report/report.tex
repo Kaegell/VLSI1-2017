@@ -1,11 +1,72 @@
 
 \documentclass{article}
 
+%% Packages for French writing
+\usepackage[francais]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{layout}
+
+%% Packages for Math symbols
+\usepackage[fleqn]{amsmath}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+
+%% Packages for figures insertion
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{framed}
+\usepackage{float}
+
+%% Package for document margin editing
+\usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+
+%% Package for source code insertion
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{grey}{rgb}{0.97, 0.97, 0.97}
+\definecolor{darkred}{rgb}{0.42, 0, 0}
+\definecolor{darkblue}{rgb}{0, 0, 0.42}
+\definecolor{darkgrey}{rgb}{0.22, 0.22, 0.82}
+\definecolor{green}{HTML}{088A08}
+\lstset{
+  basicstyle=\small\sffamily\footnotesize,
+  captionpos=b,
+  numbers=left,
+  numberstyle=\tiny,
+  tabsize=4,
+  frame=trBL,
+  backgroundcolor=\color{grey},
+  commentstyle=\color{green},
+  keywordstyle=\color{darkblue}\bf,
+  identifierstyle=\color{darkgrey},
+  stringstyle=\color{darkred}
+}
+
 \begin{document}
 \title{Rapport de projet VLSI}
 \author{Nicolas Phan, Kevin Mambu}
 \date{pour le 26 Janvier 2018}
 \pagestyle{headings}
 \maketitle
+
+%==================================================================================================
+%=========================  Beginning of the Document  ============================================
+%==================================================================================================
+
+\section{Introduction}
+
+Le but de notre projet est de concevoir un processeur ARM, c'est à dire un processeur conforme
+à l'architecture décrite dans la documentation ARM donnée en cahier des charges.
+
+\begin{figure}[h]
+\includegraphics[scale=1]{pics/blank.png}
+\centering
+\caption{Schema général de l'objectif du projet}
+\end{figure}
+
+%==================================================================================================
+%=========================  End of the Document  ==================================================
+%==================================================================================================
 
 \end{document}

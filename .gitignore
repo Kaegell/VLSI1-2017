@@ -4,6 +4,9 @@
 *.o
 *.wave
 *.vcd
+*.aux
+*.log
+report.pdf
 build/vcd
 work/
 bin/

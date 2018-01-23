@@ -227,23 +227,16 @@ du range des 32 bits).
 
 \subsubsection{Modélisation du Shifter}
 
-\begin{figure}[H]
-\includegraphics[scale=1]{pics/blank.png}
-\centering
-\caption{Schema du Shifter}
-\label{shifter}
-\end{figure}
-
 Tout comme l'ALU peut effectuer différentes opérations, le shifter peut effectuer différents
 types de décalages (LSL, LSR, ASR, ROR, RRX) donc de la même manière, notre implémentation
 du shifter en Figure \ref{shifter} effectue tous les types de décalages possibles et choisit
 le résultat qui nous intéresse.
 
-\begin{figure}[ht]
+\begin{figure}[H]
 \includegraphics[scale=1]{pics/blank.png}
 \centering
-\caption{Schema de la partie LSL du Shifter}
-\label{shifter_lsl}
+\caption{Schema du Shifter}
+\label{shifter}
 \end{figure}
 
 Ensuite pour réaliser l'opération LSL, en Figure \ref{shifter_lsl},
@@ -257,21 +250,32 @@ Le décalage total subi par l'opérande source est donc de :
 
 La même logique est utilisée pour implémenter les autres types de décalages.
 
+\begin{figure}[H]
+\includegraphics[scale=1]{pics/blank.png}
+\centering
+\caption{Schema de la partie LSL du Shifter}
+\label{shifter_lsl}
+\end{figure}
+
+
+
 \subsubsection{Ajouts sur EXE}
 
 \textbf{Le flag C}
+
 D'après la doc ARM, le flag C en sortie d'une opération peut être la retenur en sortie d'addition
 pour les opérations arithmétiques ou en sortie de shift pour les opérations logiques.
 Puis pour savoir si l'opération en cours est arithmérique ou logique, il suffit de voir si
 l'ALU réalise une addition ou autre chose.
 
-La pre/post indexation
+\textbf{La pre/post indexation}
+
 Lors d'un accès mémoire, le jeu ARM offre la possibilité de choisisr si l'adresse prise en compte
 pour un accès mémoire est l'adresse de base ou l'addresse base + offset.
 Dans EXE, cela équivaut à choisir entre l'opérande 2 et le résultat en sortie d'ALU,
 cela mène au schema en Figure \ref{exe2}.
 
-\begin{figure}[ht]
+\begin{figure}[H]
 \includegraphics[scale=1]{pics/blank.png}
 \centering
 \caption{Schema amélioré de EXE}

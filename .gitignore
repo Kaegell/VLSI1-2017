@@ -2,5 +2,3 @@
 *.swo
 *.cf
 *.o
-build/vcd
-work/

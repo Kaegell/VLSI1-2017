@@ -84,6 +84,7 @@ Architecture Exec OF Exec IS
     SIGNAL alu_cout_sig     : STD_LOGIC;
     SIGNAL alu_res     : STD_LOGIC_VECTOR(31 DOWNTO 0);
 
+    signal memory_access : std_logic;
     signal i_pushes : std_logic;        -- Indicates if the current instruction
                                         -- needs to push into the FIFO
     signal i_stagnant : std_logic;      -- Indicates if the current instruction
@@ -168,10 +169,6 @@ Architecture Exec OF Exec IS
             full      : out std_logic;
             empty     : out std_logic;
 
-            debug_head : out std_logic_vector(3 downto 0);
-            debug_tail : out std_logic_vector(3 downto 0);
-            debug_size : out std_logic_vector(3 downto 0);
-
             reset_n   : in  std_logic;
             ck        : in  std_logic;
             vdd       : in  bit;
@@ -237,7 +234,7 @@ BEGIN
                  vdd		=> vdd);
 
     -- FIFO handling
-    exec2mem : fifov2 
+    exec2mem : fifo_72b
     PORT MAP (
     din(71)				=> dec_mem_lw,
     din(70)				=> dec_mem_lb,
@@ -269,19 +266,28 @@ BEGIN
     vdd					=> vdd,
     vss					=> vss);
 
-    fifo_handler_inst : fifo_handler
-    port map (
-    i_pushes      => i_pushes,
-    i_stagnant    => i_stagnant,
-    empty         => dec2exe_empty,
-    full          => exe2mem_full,
-    push          => exe2mem_push,
-    pop           => exe_pop,
-    ck            => ck,
-    reset_n       => reset_n,
-    vdd           => vdd,
-    vss           => vss);
+    --fifo_handler_inst : fifo_handler
+    --port map (
+    --i_pushes      => i_pushes,
+    --i_stagnant    => i_stagnant,
+    --empty         => dec2exe_empty,
+    --full          => exe2mem_full,
+    --push          => exe2mem_push,
+    --pop           => exe_pop,
+    --ck            => ck,
+    --reset_n       => reset_n,
+    --vdd           => vdd,
+    --vss           => vss);
     -- end of FIFO handling
+
+    memory_access <= dec_mem_lw or dec_mem_lb or dec_mem_sw or dec_mem_sb;
+    -- we pop if (1) the FIFO is not empty
+    -- and (2) if we have nothing left to push
+    -- (2) : in other words if we had nothing to push (i.e. there was no memory access to launch)
+    -- or if we are going to push
+    exe_pop <=  (not dec2exe_empty) and (not memory_access or exe2mem_push);
+    -- we push if there's a memory access to launch and if the FIFO is not full
+    exe2mem_push <= memory_access and not exe2mem_full;
 
     exe_dest <= dec_exe_dest;
     exe_wb <= dec_exe_wb;

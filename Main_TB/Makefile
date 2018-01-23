@@ -21,14 +21,20 @@ arm_core.o : arm_core.vhdl ifetch.o decod.o exec.o mem.o
 ifetch.o : ifetch.vhdl
 	${GHDL} -a ${GHDL_OP} ifetch.vhdl
 
-decod.o : ../DECOD/decod.vhdl fifo_32b.o fifo_127b.o reg.o
+decod.o : ../DECOD/decod.vhdl fifo_32b.o fifo_127b.o fifov2.o reg.o
 	${GHDL} -a ${GHDL_OP} ../DECOD/decod.vhdl
 
 reg.o : ../DECOD/reg.vhdl 
 	${GHDL} -a ${GHDL_OP} ../DECOD/reg.vhdl
 
-exec.o : ../EXEC/exec.vhdl fifo_72b.o alu.o shifter.o
+exec.o : ../EXEC/exec.vhdl fifo_72b.o alu.o shifter.o fifo_handler.o
 	${GHDL} -a ${GHDL_OP} ../EXEC/exec.vhdl
+
+fifo_handler.o : ../FIFO/fifo_handler/fifo_handler.vhdl
+	${GHDL} -a ${GHDL_OP} ../FIFO/fifo_handler/fifo_handler.vhdl
+
+fifov2.o : ../FIFO/fifov2/fifov2.vhdl
+	${GHDL} -a ${GHDL_OP} ../FIFO/fifov2/fifov2.vhdl
 
 fifo_72b.o : ../FIFO/fifo_72b.vhdl
 	${GHDL} -a ${GHDL_OP} ../FIFO/fifo_72b.vhdl

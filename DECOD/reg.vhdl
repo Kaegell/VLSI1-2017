@@ -25,16 +25,19 @@ entity Reg is
             reg_rd1		: out Std_Logic_Vector(31 downto 0);
             radr1			: in Std_Logic_Vector(3 downto 0);
             reg_v1		: out Std_Logic;
+            reg_wb1   : out std_logic;
 
         -- Read Port 2 32 bits
             reg_rd2		: out Std_Logic_Vector(31 downto 0);
             radr2			: in Std_Logic_Vector(3 downto 0);
             reg_v2		: out Std_Logic;
+            reg_wb2   : out std_logic;
 
         -- Read Port 3 32 bits
             reg_rd3		: out Std_Logic_Vector(31 downto 0);
             radr3			: in Std_Logic_Vector(3 downto 0);
             reg_v3		: out Std_Logic;
+            reg_wb3   : out std_logic;
 
         -- read CSPR Port
             reg_cry		: out Std_Logic;
@@ -70,76 +73,138 @@ architecture Reg of Reg is
     type REG_array is array (0 to 15) of std_logic_vector (31 downto 0);
     signal registers : REG_array;
     signal inval_regs: std_logic_vector (0 to 15);
+    signal wb_regs : std_logic_vector(0 to 15);
     signal cry_sig : std_logic;
     signal zero_sig : std_logic;
     signal neg_sig : std_logic;
     signal ovr_sig : std_logic;
-    signal pc_sig: unsigned (31 downto 0);
+    signal r0  : std_logic_vector (31 downto 0);
+    signal r1  : std_logic_vector (31 downto 0);
+    signal r2  : std_logic_vector (31 downto 0);
+    signal r3  : std_logic_vector (31 downto 0);
+    signal r4  : std_logic_vector (31 downto 0);
+    signal r5  : std_logic_vector (31 downto 0);
+    signal r6  : std_logic_vector (31 downto 0);
+    signal r7  : std_logic_vector (31 downto 0);
+    signal r8  : std_logic_vector (31 downto 0);
+    signal r9  : std_logic_vector (31 downto 0);
+    signal r10 : std_logic_vector (31 downto 0);
+    signal r11 : std_logic_vector (31 downto 0);
+    signal r12 : std_logic_vector (31 downto 0);
+    signal r13 : std_logic_vector (31 downto 0);
+    signal r14 : std_logic_vector (31 downto 0);
+    signal r15 : std_logic_vector (31 downto 0);
 begin
     process(ck)
+    variable var_inval_regs : std_logic_vector (0 to 15);
+    variable var_wb_regs   : std_logic_vector (0 to 15);
     begin
         -- Invalidate all registers when reset (asynchronously)
         if reset_n = '0' then
             inval_regs(0 to 15) <= (others => '0');
+            var_inval_regs(0 to 15) := (others => '0');
+            var_wb_regs(0 to 15) := (others => '0');
             -- Registers init.
             registers(15) <= X"00000000";
-            reg_pcv <= '1';
+            reg_pcv   <= '1';
+            reg_cry   <= '0';
+            reg_zero  <= '1';
+            reg_neg   <= '0';
+            reg_ovr   <= '0';
+            reg_cznv  <= '0';
+            reg_vv    <= '1';
+            for i in 0 to 14 loop
+              registers(i) <= x"00000000";
+            end loop;
 
         elsif rising_edge(ck) then
 
-            -- Invalidate registers (from DECOD)
-            inval_regs(to_integer(unsigned(inval_adr1)))<= inval1;
-            inval_regs(to_integer(unsigned(inval_adr2)))<= inval2;
+            -- =================================  INVALIDATION  ===================================
+            -- Future state of a register depending on whether it's gonna be written/invalidated :
+            -- --------------------------------------------------
+            -- | inval1  |  wen1  ||  valid1(t)   | invalid1(t) |
+            -- |---------|--------||--------------|-------------|
+            -- |      0  |     0  ||  valid1(t-1) | invalid1(t) |
+            -- |      0  |     1  ||            1 |           0 |
+            -- |      1  |     0  ||            0 |           1 |
+            -- |      1  |     1  ||            0 |           1 |
+            -- --------------------------------------------------
+            -- N.B. In case a register gets written AND invalidated, the invalidation supersedes
 
+            -- Validate written registers
+            if (wen1 = '1') then
+              var_inval_regs(to_integer(unsigned(wadr1))) := '0';
+            end if;
+
+            if (wen2 = '1') then
+              var_inval_regs(to_integer(unsigned(wadr2))) := '0';
+            end if;
+
+            -- Invalidate to-be-written registers
+            if (inval1 = '1') then
+              var_inval_regs(to_integer(unsigned(inval_adr1))) := '1';
+            end if;
+
+            if (inval2 = '1') then
+              var_inval_regs(to_integer(unsigned(inval_adr2))) := '1';
+            end if;
+
+            inval_regs <= var_inval_regs;
+
+            -- ======================================  PC  ========================================
             -- PC increment operator
             -- if inval_regs(15) = '1' and inc_pc = '1' then
             if inc_pc = '1' then
-                pc_sig <= to_unsigned(to_integer(unsigned(registers(15))) + 4, pc_sig'length);
+                registers(15) <= std_logic_vector(to_unsigned(to_integer(unsigned(registers(15))) + 4, 32));
                 --inval_regs(15) <= '0';
-            else
-                pc_sig <= unsigned(registers(15));
+            --else
+                --pc_sig <= unsigned(registers(15));
             end if;
 
-            -- PC setup and remapping to output
-            registers(15) <= std_logic_vector(pc_sig);
-            reg_pc <= registers(15);
-            reg_pcv <= '1'; --not inval_regs(15);
+            -- =====================================  WRITE  ======================================
+            -- EXE and MEM can both write back in REG at the same time,
+            -- but if they both want to write the same register,
+            -- we take EXE's value, EXE is prioritary.
 
-            -- Rd1 writeback
-            reg_rd1 <= registers(to_integer(unsigned(radr1))); 
-            reg_v1 <= not inval_regs(to_integer(unsigned(radr1)));
+            -- EXE writeback
+            var_wb_regs(0 to 15) := (others => '0');
+            if wen1 = '1'                           -- if EXE wants to write back
+            then
+              registers(to_integer(unsigned(wadr1))) <= wdata1;
+              var_wb_regs(to_integer(unsigned(wadr1))) := '1';
+            end if;
 
-            -- Rd2 writeback
-            reg_rd2 <= registers(to_integer(unsigned(radr2))); 
-            reg_v2 <= not inval_regs(to_integer(unsigned(radr2)));
+            if wen2 = '1' and not (wadr1 = wadr2)   -- If MEM wants to write back
+            then
+              registers(to_integer(unsigned(wadr2))) <= wdata2;
+              var_wb_regs(to_integer(unsigned(wadr2))) := '1';
+            end if;
 
-            -- Rd3 writeback
-            reg_rd3 <= registers(to_integer(unsigned(radr3))); 
-            reg_v3 <= not inval_regs(to_integer(unsigned(radr3)));
+            wb_regs <= var_wb_regs;
 
             -- EXEC/MEM Write-back priority handling
             -- (if writeback from EXEC, ignore writeback
             -- from MEM)
-            if wen1 = '1' and wadr1 = wadr2 and
-            inval_regs(to_integer(unsigned(wadr1))) = '1'
-            then
-                registers(to_integer(unsigned(wadr1))) <= wdata1;
-                inval_regs(to_integer(unsigned(wadr1))) <= '0';
-            else
-                -- Handle EXEC/MEM Write-back as usual
-                -- (check invalidity register for each Rd)
-                if wen1 = '1' and
-                inval_regs(to_integer(unsigned(wadr1))) = '1'
-                then
-                    registers(to_integer(unsigned(wadr1))) <= wdata2;
-                    inval_regs(to_integer(unsigned(wadr1))) <= '0';
-                elsif wen2 = '1' and
-                inval_regs(to_integer(unsigned(wadr2))) = '1'
-                then
-                    registers(to_integer(unsigned(wadr2))) <= wdata2;
-                    inval_regs(to_integer(unsigned(wadr2))) <= '0';
-                end if;
-            end if;
+            --if wen1 = '1' and wadr1 = wadr2 and
+            --inval_regs(to_integer(unsigned(wadr1))) = '1'
+            --then
+                --registers(to_integer(unsigned(wadr1))) <= wdata1;
+                --inval_regs(to_integer(unsigned(wadr1))) <= '0';
+            --else
+                ---- Handle EXEC/MEM Write-back as usual
+                ---- (check invalidity register for each Rd)
+                --if wen1 = '1' and
+                --inval_regs(to_integer(unsigned(wadr1))) = '1'
+                --then
+                    --registers(to_integer(unsigned(wadr1))) <= wdata2;
+                    --inval_regs(to_integer(unsigned(wadr1))) <= '0';
+                --elsif wen2 = '1' and
+                --inval_regs(to_integer(unsigned(wadr2))) = '1'
+                --then
+                    --registers(to_integer(unsigned(wadr2))) <= wdata2;
+                    --inval_regs(to_integer(unsigned(wadr2))) <= '0';
+                --end if;
+            --end if;
 
             -- CSPR Flags Update
             -- C,Z,N updated when logical operations
@@ -155,4 +220,43 @@ begin
             end if;
         end if;
     end process;
+    -- =====================================  READ  =======================================
+    -- The read, unlike the rest, is within-cycle, so it's out of the VHDL process
+
+    -- PC setup and remapping to output
+    reg_pc <= registers(15);
+    reg_pcv <= not inval_regs(15);
+
+    -- Rd1 writeback
+    reg_rd1 <= registers(to_integer(unsigned(radr1)));
+    reg_v1 <= not inval_regs(to_integer(unsigned(radr1)));
+    reg_wb1 <= wb_regs(to_integer(unsigned(radr1)));
+
+    -- Rd2 writeback
+    reg_rd2 <= registers(to_integer(unsigned(radr2)));
+    reg_v2 <= not inval_regs(to_integer(unsigned(radr2)));
+    reg_wb2 <= wb_regs(to_integer(unsigned(radr2)));
+
+    -- Rd3 writeback
+    reg_rd3 <= registers(to_integer(unsigned(radr3)));
+    reg_v3 <= not inval_regs(to_integer(unsigned(radr3)));
+    reg_wb3 <= wb_regs(to_integer(unsigned(radr3)));
+
+    -- Assign register array to signals, in order to be able to see the registers in gtkwave
+    r0 <= registers(0);
+    r1 <= registers(1);
+    r2 <= registers(2);
+    r3 <= registers(3);
+    r4 <= registers(4);
+    r5 <= registers(5);
+    r6 <= registers(6);
+    r7 <= registers(7);
+    r8 <= registers(8);
+    r9 <= registers(9);
+    r10 <= registers(10);
+    r11 <= registers(11);
+    r12 <= registers(12);
+    r13 <= registers(13);
+    r14 <= registers(14);
+    r15 <= registers(15);
 end architecture;

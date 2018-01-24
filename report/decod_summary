@@ -1,0 +1,61 @@
+
+=============
+ENTITY DECLARATION
+  -- Exec operands
+  -- DECOD to MEM via EXE
+  -- Shifter command
+  -- ALU command
+  -- Input operands
+  -- EXE output / wbk
+  -- IFC interface
+  -- MEM output / wbk
+COMPONENT DECLARATION
+  REG
+  -- Write ports (2 ports)
+  -- Write flags
+  -- Read ports (3 ports)
+  -- Read flags
+  -- Invalidate (2 ports + flags)
+  -- PC (read and invalidate)
+SIGNAL DECLARATION
+  Predicate
+  Instruction decoding  (xxx_t, xxx_i)
+  Operands reading      (radr, rdata, operv)
+  Flags and PC reading  (c, z, n, v, reg_pc, inc_pc)
+  Invalidation          (Inval1, Inval2, inval flags)
+  Output to EXE         (op1, op2, dest...)
+  Output to MEM         (mem_data, ld_dest...)
+  Multiple transferts
+  FSM
+=============
+PREDICATE CONTROL
+  Predicate retrieving                    [ ]
+  Predicate validity                      [ ]
+INSTRUCTION DECODING
+  Instruction type decoding               [X]
+  Instruction decoding                    [X]
+OPERANDS
+  Operand reading           (radr)        [ ]
+  Operand validity checking (operv)       [ ]
+EXE
+  Operands                                [ ]
+  ALU command                             [ ]
+  Inverter command                        [ ]
+  Shifter command                         [ ]
+  Writeback                               [ ]
+MEM
+  Destination register                    [ ]
+  Option (pre/post index)                 [ ]
+  Data                                    [ ]
+  Operation type                          [ ]
+INVALIDATION
+  Registers invalidation                  [ ]
+  Flags invalidation                      [ ]
+MULTIPLE TRANSFERTS
+FINITE STATE MACHINE
+  Register process                        [ ]
+  Combinatory process                     [ ]
+    Fetch                                 [ ]
+    Run                                   [ ]
+=============
+

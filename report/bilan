@@ -157,6 +157,148 @@ pour implementer le pre-index/post-index
 [ Schema de la partie pre-index de EXE ]
 
 
-B - Design des FIFOs : Interfacage entre les etages
+------------------ 5 - Communication avec les autres etages -----------------------------------
 
+handling de la FIFO,
+
+
+-----------------------------------------------------------------------------------------------
+------------------ C - Design de DECOD --------------------------------------------------------
+-----------------------------------------------------------------------------------------------
+
+Pour chaque instruction, hormis quelques spécificités dues aux branchements
+et transferts multiples, DECOD doit faire 5 choses :
+  - Envoyer l'adresse de l'instruction (valeur de PC) vers IFC.
+  - Récupérer l'instruction de IFC.
+  - Décoder l'instruction (quel opération effectuer, quelles opérandes utiliser)
+  - Vérifier si la condition d'exécution est remplie (exécution conditionnelle)
+  - Lire les opérandes à utiliser sur le banc de registres.
+  - Envoyer les opérandes lues et le type d'opération à effectuer vers EXE.
+  - Passer à l'instruction suivante (incrémenter PC)
+
+Dans un premier temps, nous modéliserons le comportement général de DECOD,
+puis nous apporterons des amélioration au fur et à mesure pour implémenter les branchements,
+les branchements avec link puis les transferts multiples. Nous avons donc choisi une approche
+"instruction par instruction" pour la modélisation de DECOD.
+
+------------------ 1 - Design général ---------------------------------------------------------
+
+Le premier type d'instruction à implémenter sont les regops, elles ne font rien de spécial
+à DECOD donc c'est adapté de commence par elles pour implémenter le comportement général de DECOD.
+Dans DECOD nous placerons le bang de registres (REG), nous verrons donc un par un les choses
+à implémenter dans DECOD et dans REG.
+
+-- Envoi du PC vers IFC ---------------------
+
+Nous plaçons dans REG la sortie reg_pc qui donne à DEC la valeur de PC à chaque instant,
+puis DEC transmet cette valeur à IFC sur la sortie dec_pc via une FIFO (dec2if).
+
+[ Schema DEC 1 ]
+
+-- Récupération de l'instruction depuis IFC -
+
+Il y a encore communication entre deux étages, donc nous avons encore une FIFO (if2dec)
+mais comme la convention veut que la FIFO soit à l'étage émetteur, elle sera dans IFC,
+donc dans DEC nous récupérons simplement l'instruction via une entrée if_ir[32bits].
+
+[ Schema DEC 2 ]
+
+-- Décodage de l'instruction ----------------
+
+--------- Decodage du type d'instruction -----------------
+Il s'agit ici de lire, à partir des 32 bits de if_ir, quelle opération
+doit être effectuée et sur quelles opérandes.
+
+La première chose à décoder est le type d'instruction. Selon le détail du format des
+instructions en Figure \ref{format_instr}, si on ne considère que les instruction :
+  - Data processing
+  - Multiply
+  - Single Data Swap
+  - Single Data Transfert
+  - Block Data Transfert
+  - Branch
+
+Le premier critère est que les bits 27 à 25 valent :
+  - 00X    pour les regops, les multiply et swap
+  - 01X    pour les single data transfert
+  - 100    pour les multiple transferts
+  - 101    pour les branch
+
+Ensuite, pour distinguer les regops, multiply et swap, le deuxième critère est que :
+  - Pour les mult, les bits 25 à 23 valent 000 et les bits 7 à 4 valent 1001
+  - Pour les swap, les bits 25 à 23 valent 101 et les bits 7 à 4 valent 1001
+On pourrait penser a priori que les regops pourraient, dans leur opérande 2,
+avoir leurs bits 7 à 4 égaux à 1001 mais dans le détail de l'opérande 2 et du shift,
+on observe que si le bit 4 vaut 1, le bit 7 vaut forcément 0 donc cette combinaison est impossible,
+il n'y a donc pas de conflit potentiel.
+
+code : les xxx_t
+
+--------- Decodage de l'instruction -----------------
+
+Maintenant qu'on connait de type d'instruction, il faut déterminer à quelle instruction
+on a affaire précisément.
+
+Pour les regops, c'est immédiat : les bits 24 à 21 de if_ir donnent directement l'opcode,
+d'ou. (Pour les trans (Single Data Transfert), il suffit de lire les bits 20 et 22 qui donnent
+respectivement le sens d'accès (lecture/écriture) et la taille de la données accédée (mot/octet)).
+
+code : les xxx_i
+
+--------- Lecture des opérandes ---------------------
+
+L'exécution d'une instruction nécéssite de récupérer la valeur de certains registres pour
+effectuer une opération dessus (ce sera EXE qui la fera). DECOD doit se charger
+de lire les registres nécéssaires depuis le banc de registres pour fournir leurs valeurs à EXE.
+
+Pour cela, nous placerons 3 ports de lecture dans REG (3 car les instruction ont besoin de
+connaître au maximum les valeurs de 3 registres). La lecture se fera au sein d'un même cycle d'horloge
+car tout ce que fait DECOD doit se faire en un cycle.
+
+Ensuite, DECOD doit déterminer quels registres lire à chaque fois.
+Dans la documentation ARM, les registres à lire potentiellement sont Rd, Rn, Rm et Rs,
+nous assignerons:
+  - Le port de lecture 1 de REG     à Rn,
+  - Le port 2 à Rm
+  - Le port 3 à Rd et Rs
+Aucune instruction ne lit Rd et Rs en même temps, donc il n'y aura pas de conflit sur le port 3.
+Puis le numéro des registres Rn, Rm, Rd et Rs est données dans if_ir, encore selon la doc ARM :
+  - Rd est donné dans les bits 15 à 12 (sauf pour le mult ou c'est de 19 à 15)
+  - Rn -> if_ir(19:16) sauf pour les mult où c'est if_ir(15:12)
+  - Rm -> if_ir(3:0)
+  - Rs -> if_ir(11:8)
+Il suffit de récupérer ces champs et de les donner en adresse à REG pour obtenir nos valeurs de registres :
+
+code : radr
+
+---------------------------------------------------------------------------------------------------------------------
+Le moteur : PC qui s'incremente de 4 a chaque cycle
+
+Decodage combinatoire
+  Type de l'instruction
+  Les regops
+    op2 immediate
+    op2 register
+    shift immediate
+    shift register
+Lecture des operandes
+  REG :
+  Trois ports de lecture on-cycle
+  Comment decider quels registres lire selon l'instruction actuelle
+Gestion des dependances : Mecanisme d'invalidation des registres
+  Le principe
+  Invalidation dans DECOD
+  Revalidation au writeback
+Gestion des differents etats de DECOD : FSM
+  DEC fera des choses differentes en fonction de
+  si l'adresse PC est valide ou non,
+  si on est en plein branchement et qu'on doit annuler les instruction qui suivent,
+  si on est en plein transfert multiple,
+  ou si on est tout simplement en etat "normal" et que les instructions defilent.
+  => Pour gerer cela, la methode adequate est la MAE
+  FETCH : L'adresse pointee par PC n'est pas valide, on attend qu'elle le soit.
+  Ca arrive quand un branchement est dans EXE et que l'adresse de branchement
+  est en train d'etre calculee, ou alors au demarrage de la machine.
+  RUN : C'est l'etat "normal" de DEC, rien de special, les instructions arrivent,
+  sont decodees puis envoyees dans EXE.
 

@@ -245,7 +245,11 @@ respectivement le sens d'accès (lecture/écriture) et la taille de la données 
 
 code : les xxx_i
 
---------- Lecture des opérandes ---------------------
+La figure ... résume ce qu'il a dans DECOD pour l'instant.
+
+[ Figure ]
+
+-- Lecture des opérandes ---------------------
 
 L'exécution d'une instruction nécéssite de récupérer la valeur de certains registres pour
 effectuer une opération dessus (ce sera EXE qui la fera). DECOD doit se charger
@@ -271,7 +275,57 @@ Il suffit de récupérer ces champs et de les donner en adresse à REG pour obte
 
 code : radr
 
----------------------------------------------------------------------------------------------------------------------
+-- Envoi de l'opération à EXE ----------------
+
+Une fois les opérandes lues, il s'agit de les envoyer vers EXE ainsi que les détails
+sur l'opération à effectuer, c'est à dire les signaux :
+  - alu_dest
+  - op1
+  - op2
+  - alu_cmd
+  - alu_cy
+  - comp_op1
+  - comp_op2
+  - shift_lsl
+  - shift_lsr
+  - shift_asr
+  - shift_ror
+  - shift_rrx
+  - shift_val
+
+Nous nous concentrerons sur le cas des regops :
+
+alu_dest sera Rd, c'est à dire if_ir(15:12).
+op1 sera la valeur de Rn, (port 1 de REG)
+op2 sera soit la valeur de Rm (port 2 de REG), soit un immediat (if_ir(7 downto 0) zero-extended)
+
+Quant à alu_cmd, alu_cy, comp_op1 et comp_op2, leur valeur dépend de l'instruction en question,
+la Figure ... détaille leurs valeurs.
+
+[ Tableau ]
+
+Enfin, il faut spécifier quel décalage appliquer à l'opérande 2.
+Le type de décalage est donné par if_ir(6:5) mais dans le cas des rotations,
+il faut distinguer ROR et RRX dans le cas if_ir(6:5) = "11" :
+On a un ROR si l'opérande 2 est un immédiat ou si c'est un register mais que le shift amount n'est pas nul.
+
+-------------------------------------------------------------------------------------------------------------------
+bilan :
+ameliorations :
+ - FIFO a plusieurs cases
+ - probleme D - E - M
+   ldw R4, ...
+   add R4, R10, R11
+   add R4, R4, #1
+
+ouverture :
+ - Faudrait ensuite implementer
+   les bypass
+   la gestion de la vmem,
+   les interruptions
+   ...pour faire tourner Linux dessus
+
+-------------------------------------------------------------------------------------------------------------------
 Le moteur : PC qui s'incremente de 4 a chaque cycle
 
 Decodage combinatoire

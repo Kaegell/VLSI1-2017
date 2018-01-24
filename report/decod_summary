@@ -35,12 +35,12 @@ INSTRUCTION DECODING
   Instruction type decoding               [X]
   Instruction decoding                    [X]
 OPERANDS
-  Operand reading           (radr)        [ ]
+  Operand reading           (radr)        [X]
   Operand validity checking (operv)       [ ]
 EXE
-  Operands                                [ ]
-  ALU command                             [ ]
-  Inverter command                        [ ]
+  Operands                                [X]
+  ALU command                             [X]
+  Inverter command                        [X]
   Shifter command                         [ ]
   Writeback                               [ ]
 MEM

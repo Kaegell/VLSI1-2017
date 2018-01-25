@@ -522,7 +522,7 @@ begin
 -- == @@ ==========  PREDICATE CONTROL =========================================
 -- =============================================================================
 
-------------------------- Predicate retrieving ---------------------------------
+------------------------- Predicate verification ---------------------------------
     cond <= '1' when
         (if_ir(31 downto 28) = X"0" and   zero = '1'                    ) or
         (if_ir(31 downto 28) = X"1" and   zero = '0'                    ) or
@@ -544,14 +544,14 @@ begin
     -- condv = "the 'cond' signal is valid" and 'cond' is valid when
     -- all the flags it uses are valid, i.e. cond = FOO and all the flags
     -- influencing FOO are valid
-    condv   <= '1'		                when if_ir(31 downto 28) = X"E"
+    condv   <= '1'                    when if_ir(31 downto 28) = X"E"
           else reg_cznv and reg_vv    when if_ir(31 downto 28) = X"A"
                                         or if_ir(31 downto 28) = X"B"
                                         or if_ir(31 downto 28) = X"C"
                                         or if_ir(31 downto 28) = X"D"
           else reg_vv                 when if_ir(31 downto 28) = X"6"
                                         or if_ir(31 downto 28) = X"7"
-		      else reg_cznv;
+          else reg_cznv;
 
 -- =============================================================================
 -- == @@ ==========  INSTRUCTION DECODING  =====================================
@@ -569,12 +569,12 @@ begin
                             if_ir(11 downto 4) = "00001001"
            else '0';
   trans_t    <= '1'   when  if_ir(27 downto 26) = "01" and not (
-                              if_ir(25) = '1' and
-                              if_ir(4) = '1' )
+                            if_ir(25) = '1' and
+                            if_ir(4) = '1' )
            else '0';
-  mtrans_t   <= '1'   when if_ir(27 downto 25) = "100"
+  mtrans_t   <= '1'   when  if_ir(27 downto 25) = "100"
            else '0';
-  branch_t   <= '1'   when if_ir(27 downto 25) = "101"
+  branch_t   <= '1'   when  if_ir(27 downto 25) = "101"
            else '0';
 
 ------------------------- Instruction Decoding ---------------------------------
@@ -794,7 +794,7 @@ begin
                                        or (if_ir(25) = '1'   
                                        or if_ir(4) = '1'))
        else '1'   when regop_t = '0'
-			 else '0';
+       else '0';
 
 -- =============================================================================
 -- == @@ ==========  Invalidation  =============================================
@@ -816,14 +816,14 @@ begin
                    '0';
 
 ------------------------- Flags Invalidation -----------------------------------
-  inval_czn <= '1'       when regop_t = '1' and
-                         (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1')
-          else if_ir(20);
+  inval_czn <= '1'        when regop_t = '1' and
+                          (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1')
+           else if_ir(20);
 
-	inval_ovr <= '1'       when regop_t = '1' and
-                         (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') and
-                         alu_cmd = "00"
-          else if_ir(20) when alu_cmd = "00"
+  inval_ovr <= '1'        when regop_t = '1' and
+                          (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') and
+                          alu_cmd = "00"
+          else if_ir(20)  when alu_cmd = "00"
           else '0';
 			
 -- =============================================================================

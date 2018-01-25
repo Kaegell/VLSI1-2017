@@ -83,14 +83,27 @@ La conception de ce processeur se fera en quatre grandes étapes :
                       du plus abstrait (description du comportement du circuit seulement)
                       au plus concret (schema des portes logiques du circuit)
                       \textit{Nous utiliserons le langage VHDL pour décrire notre modèle de processeur}
-\item \textbf{Simulation}    : Il s'agit de simuler notre processeur.
+\item \textbf{Simulation}    : Il s'agit de vérifier par la simulation que notre modèle est fonctionnel. 
                       \textit{Nous utiliserons le simulateur ghdl ainsi que des bancs de tests VHDL
-                      et une plateforme de simulation d'exécution de programmes ASM et C}
-\item \textbf{Placement, Routage} : Dans cette étape, nous passons d'un modèle VHDL du circuit à un
+                      et une plateforme de simulation d'exécution de programmes ASM et C pour cela.}
+\item \textbf{Synthèse} : Cette étape consiste à passer de notre modèle VHDL fonctionnel à une description
+                          concrète du circuit (en portes logiques, transistors), autrement dit une netlist.
+                          \textit{Nous utiliserons les outils vasy, bool et boog ici.}
+\item \textbf{Placement, Routage} : Dans cette étape, nous passons de la netlist à un
                           dessin du masque de notre processeur, prêt à être envoyé en fonderie.
-                          \textit{Nous utiliserons les outils druc, cougar, lvx, tas et s2r pour cela}
+                          \textit{Nous utiliserons les outils druc, cougar, lvx, tas et s2r pour cela.}
 \item \textbf{Fonderie} :          Cette étape est réalisée par un fondeur tiers.
 \end{enumerate}
+
+La Figure \ref{outils} résume le flot de travail et les outils utilisés pour les étapes de Syntèse,
+Placement et Routage.
+
+\begin{figure}[H]
+\includegraphics[width=0.75\textwidth]{pics/conception.png}
+\centering
+\caption{Outils utilisés pour la réalisation du processeur}
+\label{outils}
+\end{figure}
 
 %==================================================================================================
 %=========================  Modelisation  =========================================================
@@ -100,12 +113,16 @@ La conception de ce processeur se fera en quatre grandes étapes :
 %==================== Design general du processeur ================================================
 \subsection{Design général du processeur}
 
-Le processeur doit pouvoir exécuter toutes les instruction du jeu ARM avec le moins
-de matériel possible, de plus, nous devrons concevoir un processeur pipeliné asynchrone.
-La figure \ref{etages} illustre le découpage en étages de notre pipeline avec les opérations effectuées
-par chaque étage pour chaque type d'instruction.
-Les types d'instructions que nous étudierons seront les instructions de data processing (regops),
+Le processeur que nous voulons réaliser doit pouvoir exécuter toutes les instruction du jeu ARM
+mais nous nous concentrerons sur instructions de data processing (regops),
 les instructions de branchement (branch), les transferts mémoires simples (trans) et multiples (mtrans).
+
+Le processeur doit pouvoir exécuter ces instructions le plus rapidement possible, et pour arriver à des
+performances satisfaisantes nous choisissons de concevoir un processeur pipeliné (pipeliné asynchrone).
+
+Dès lors que nous choisissons une architecture pipelinée, une première étape est d'énumérer l'ensemble
+des traitement devant être effectués par le processeur pour pouvoir exécuter le jeu d'instructions,
+et la répartition de ces traitement entre les différents étages, ceci est détaillé en Figure \ref{etages}.
 
 \begin{figure}[H]
 \includegraphics[width=0.75\textwidth]{pics/etages.png}
@@ -114,25 +131,28 @@ les instructions de branchement (branch), les transferts mémoires simples (tran
 \label{etages}
 \end{figure}
 
+Nous allons voir l'implémentation de l'étage EXEC, puis de DECOD.
+
 %==================== Modelisation de l'etage EXE =================================================
-\subsection{Modélisation de l'étage EXE}
+\section{Modélisation de l'étage EXE}
 
 \par
-C'est à l'étage EXE que se feront les opérations de calcul lors de l'execution d'instructions,
-cela comprend le calcul de l'adresse destination lors d'un branchement.
-Pour concevoir cet étage, nous devons nous demander quelles sont tous les calculs possibles
+C'est à l'étage EXE que se feront les opérations de calcul lors de l'exécution d'instructions,
+cela comprend les calculs classiques des instructions de data processing mais aussi le calcul de
+l'adresse destination lors d'un branchement ou d'un accès mémoire.
+Pour concevoir cet étage, nous devons nous demander quels sont tous les calculs possibles
 que l'étage devra pouvoir réaliser.
 
 \par
-Les différents types d'instructions que nous avons sont les regops, les branch, les trans et mtrans,
-or les branch, trans et mtrans n'ont besoin d'effectuer que des additions (pour le calcul d'adresses
-mémoire) et les regops contiennent une instruction d'addition, donc si l'étage EXE peut effectuer
+Les différents types d'instructions que nous avons sont les regops, les branch, les trans et mtrans.
+Or les branch, trans et mtrans n'ont besoin d'effectuer que des additions (pour le calcul d'adresses
+mémoire) et les regops contiennent des instructions d'addition, donc si l'étage EXE peut effectuer
 les calculs nécéssaires aux regops, a fortiori il couvre aussi les branch et transferts mémoire.
 Cela réduit le problème au cas des regops.
 
 \par
 Il faut lister l'ensemble des calculs que EXE devra effectuer et les réécrire
-de manière standardisée pour les décomposer en un sous-ensemble de calculs élémentaires.
+de manière standardisée pour les décomposer en un sous-ensemble d'opérations élémentaires.
 Cela nous permettra de trouver une implémentation de EXE réduisant au maximum le matériel nécéssaire.
 
 \begin{table}[H]
@@ -183,22 +203,20 @@ Instruction & Calcul demandé & Calcul standardisé  \\
 \end{table}
 
 On peut voir sur la Table \ref{standard} que l'ensemble des calculs demandés se décompose
-en calculs élémentaires suivants :
-\begin{itemize}
+en opérations élémentaires suivantes :
+\begin{enumerate}
   \item ADD, AND, OR, XOR
   \item Inversion des entrées au préalable
   \item Ajout d'un 1 pour l'addition (retenue en entrée)
-\end{itemize}
 
 De plus, le jeu d'instruction ARM spécife que l'opérande 1 peut subir un décalage
 parmi 5 types (lsl, lsr, asr, ror, rrx) et qu'à chaque opération, les flags de sortie
-doivent être calculés, on a donc :
-\begin{itemize}
-  \item Décalage de l'opérande 1
+doivent être calculés, on a donc en plus :
+  \item Décalage de l'opérande 2
   \item Calcul des flags de sortie
-\end{itemize}
+\end{enumerate}
 
-Avec tous ces éléments, nous aboutissons au schema Figure \ref{exe} pour EXE.
+Avec ces 5 éléments, nous aboutissons au schema Figure \ref{exe} pour EXE.
 
 \begin{figure}[H]
 \includegraphics[width=0.75\textwidth]{pics/exe.png}
@@ -207,7 +225,7 @@ Avec tous ces éléments, nous aboutissons au schema Figure \ref{exe} pour EXE.
 \label{exe}
 \end{figure}
 
-\subsubsection{Modélisation de l'ALU}
+\subsection{Modélisation de l'ALU}
 
 L'ALU doit pouvoir effectuer les opérations ADD, AND, OR et XOR sur deux entrées de 32bits,
 et pour l'addition elle doit pouvoir prendre en compte une retenue en entrée et en sortie.
@@ -218,8 +236,8 @@ Notre implémentation est celle en Figure \ref{alu} : L'ALU effectue de toutes m
 Pour le calcul des flags, le bloc "=0" effectue un simple AND entre tous les bits du résultat,
 le bloc "<0" vérifie si le MSB est égal à 1, on remarque que par la manière dont est construit
 le système de nombres signés, la condition "<0" est très simple à vérifier. Puis pour le bloc "overflow",
-on prend le 33ème bit du résultat de l'addition, il y a overflow s'il n'est pas nul (le résultat va au-delà
-du range des 32 bits).
+on considère que les mots sont signés et il y a overflow si les deux opérandes sont de même signe et que
+le résultat de l'addition est de signe différent.
 
 \begin{figure}[H]
 \includegraphics[width=0.75\textwidth]{pics/alu.png}
@@ -228,7 +246,7 @@ du range des 32 bits).
 \label{alu}
 \end{figure}
 
-\subsubsection{Modélisation du Shifter}
+\subsection{Modélisation du Shifter}
 
 Tout comme l'ALU peut effectuer différentes opérations, le shifter peut effectuer différents
 types de décalages (LSL, LSR, ASR, ROR, RRX) donc de la même manière, notre implémentation
@@ -248,7 +266,7 @@ si le bit $n$ est à \texttt{1}, alors l'opérande subit un décalage de $2^n$.
 Le décalage total subi par l'opérande source est donc de :
 
 \begin{eqnarray*}
-  \sum_{\substack{k \in [[0, 31]] \\ \texttt{shift\_value(k)} = 1}} 2^k &= \texttt{shift\_value}
+  \sum_{\substack{k \in [[0, 4]] \\ \texttt{shift\_value(k)} = 1}} 2^k &= \texttt{shift\_value}
 \end{eqnarray*}
 
 La même logique est utilisée pour implémenter les autres types de décalages.
@@ -262,19 +280,19 @@ La même logique est utilisée pour implémenter les autres types de décalages.
 
 
 
-\subsubsection{Ajouts sur EXE}
+\subsection{Ajouts sur EXE}
 
 \textbf{Le flag C}
 
-D'après la doc ARM, le flag C en sortie d'une opération peut être la retenur en sortie d'addition
+D'après la doc ARM, le flag C en sortie d'une opération peut être la retenue en sortie d'addition
 pour les opérations arithmétiques ou en sortie de shift pour les opérations logiques.
-Puis pour savoir si l'opération en cours est arithmérique ou logique, il suffit de voir si
+Pour savoir si l'opération en cours est arithmérique ou logique, il suffit de voir si
 l'ALU réalise une addition ou autre chose.
 
 \textbf{La pre/post indexation}
 
 Lors d'un accès mémoire, le jeu ARM offre la possibilité de choisisr si l'adresse prise en compte
-pour un accès mémoire est l'adresse de base ou l'addresse base + offset.
+pour un accès mémoire est l'adresse \texttt{base} ou l'adresse \texttt{base + offset}.
 Dans EXE, cela équivaut à choisir entre l'opérande 2 et le résultat en sortie d'ALU,
 cela mène au schema en Figure \ref{exe2}.
 
@@ -289,25 +307,26 @@ cela mène au schema en Figure \ref{exe2}.
 \section{Modélisation de l'étage DECOD}
 
 Pour chaque instruction, hormis quelques spécificités dues aux branchements
-et transferts multiples, DECOD doit faire 5 choses :
+et transferts multiples, DECOD doit faire 7 choses :
 \begin{enumerate}
   \item Envoyer l'adresse de l'instruction (valeur de PC) vers IFC.
   \item Récupérer l'instruction de IFC.
-  \item Décoder l'instruction (quel opération effectuer, quelles opérandes utiliser)
+  \item Décoder l'instruction (quelle opération effectuer, quelles opérandes utiliser)
   \item Vérifier si la condition d'exécution est remplie (exécution conditionnelle)
-  \item Lire les opérandes à utiliser sur le banc de registres.
+  \item Lire dans le banc de registres les opérandes à utiliser.
   \item Envoyer les opérandes lues et le type d'opération à effectuer vers EXE.
   \item Passer à l'instruction suivante (incrémenter PC)
 \end{enumerate}
 
 Dans un premier temps, nous modéliserons le comportement général de DECOD,
-puis nous apporterons des amélioration au fur et à mesure pour implémenter les branchements,
+puis nous apporterons des améliorations au fur et à mesure pour implémenter les branchements,
 les branchements avec link puis les transferts multiples. Nous avons donc choisi une approche
 "instruction par instruction" pour la modélisation de DECOD.
 
-Le premier type d'instruction à implémenter sont les regops, elles ne font rien de spécial
-à DECOD donc c'est adapté de commence par elles pour implémenter le comportement général de DECOD.
-Dans DECOD nous placerons le bang de registres (REG), nous verrons donc un par un les choses
+Le premier type d'instruction à implémenter sont les data processing instructions (regops),
+elles ne font rien de spécial
+dans DECOD donc il est approprié de commencer par elles.
+Dans DECOD nous placerons le banc de registres (REG), nous verrons donc une par une les choses
 à implémenter dans DECOD et dans REG.
 
 \subsection{Envoi du PC vers IFC}
@@ -315,26 +334,11 @@ Dans DECOD nous placerons le bang de registres (REG), nous verrons donc un par u
 Nous plaçons dans REG la sortie \texttt{reg\_pc} qui donne à DEC la valeur de PC à chaque instant,
 puis DEC transmet cette valeur à IFC sur la sortie \texttt{dec\_pc} via une FIFO (dec2if).
 
-\begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/dec1.png}
-\centering
-\caption{Schema temporaire de DECOD}
-\label{dec1}
-\end{figure}
-
 \subsection{Récupération de l'instruction depuis IFC}
 
 Il y a encore communication entre deux étages, donc nous avons encore une FIFO (if2dec)
 mais comme la convention veut que la FIFO soit à l'étage émetteur, elle sera dans IFC,
 donc dans DEC nous récupérons simplement l'instruction via une entrée \texttt{if\_ir[32bits]}.
-
-\begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/dec2.png}
-\centering
-\caption{Schema temporaire de DECOD}
-\label{dec2}
-\end{figure}
-
 
 \subsection{Décodage de l'instruction}
 
@@ -344,7 +348,7 @@ Il s'agit ici de lire, à partir des 32 bits de \texttt{if\_ir}, quelle opérati
 doit être effectuée et sur quelles opérandes.
 
 La première chose à décoder est le type d'instruction. Selon le détail du format des
-instructions en Figure ..., si on ne considère que les instruction :
+instructions dans la documentation ARM, en ne considérant que les instructions :
 \begin{enumerate}
   \item Data processing
   \item Multiply
@@ -356,16 +360,17 @@ instructions en Figure ..., si on ne considère que les instruction :
 
 Le premier critère est que les bits 27 à 25 valent :
 \begin{enumerate}
-  \item 00X    pour les regops, les multiply et swap
-  \item 01X    pour les single data transfert
-  \item 100    pour les multiple transferts
-  \item 101    pour les branch
+  \item \texttt{00X}    pour les regops, les multiply et swap
+  \item \texttt{01X}    pour les single data transfert
+  \item \texttt{100}    pour les multiple transferts
+  \item \texttt{101}    pour les branch
 \end{enumerate}
 
 Ensuite, pour distinguer les regops, multiply et swap, le deuxième critère est que :
 \begin{enumerate}
   \item Pour les mult, les bits 25 à 23 valent 000 et les bits 7 à 4 valent 1001
   \item Pour les swap, les bits 25 à 23 valent 101 et les bits 7 à 4 valent 1001
+  \item Pour les regops, c'est une regop lorsque ce n'est ni une mult ni une swap.
 \end{enumerate}
 On pourrait penser a priori que les regops pourraient, dans leur opérande 2,
 avoir leurs bits 7 à 4 égaux à 1001 mais dans le détail de l'opérande 2 et du shift,
@@ -375,33 +380,27 @@ il n'y a donc pas de conflit potentiel.
 %code : les xxx_t
 \lstinputlisting[language=vhdl, firstline=560, lastline=579]{decod.vhdl}
 
-\subsubsection{Decodage de l'instruction}
+\subsubsection{Décodage de l'instruction}
 
-Maintenant qu'on connait de type d'instruction, il faut déterminer à quelle instruction
+Maintenant qu'on connait le type d'instruction, il faut déterminer à quelle instruction
 on a affaire précisément.
 
 Pour les regops, c'est immédiat : les bits 24 à 21 de \texttt{if\_ir} donnent directement l'opcode,
-d'ou. (Pour les trans (Single Data Transfert), il suffit de lire les bits 20 et 22 qui donnent
+d'où. (Pour les trans (Single Data Transfert), il suffit de lire les bits 20 et 22 qui donnent
 respectivement le sens d'accès (lecture/écriture) et la taille de la données accédée (mot/octet)).
 
 %code : les xxx_i
 \lstinputlisting[language=vhdl, firstline=581, lastline=615]{decod.vhdl}
 
-La figure \ref{dec3} résume ce qu'il a dans DECOD pour l'instant.
-
-\begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/dec3.png}
-\centering
-\caption{Schema temporaire de DECOD}
-\label{dec3}
-\end{figure}
-
 \subsection{Vérification de la condition d'exécution}
 
 Le jeu ARM comporte une fonctionnalité d'execution conditionnelle,
-une instruction n'est lancée seulement si la condition sur les flags imposée
+une instruction est lancée seulement si la condition sur les flags imposée
 par l'instruction est remplie. Il suffit de lire if\_ir pour connaître la condition
 et les flags pour savoir si elle est remplie.
+
+%code : cond
+\lstinputlisting[language=vhdl, firstline=525, lastline=542]{decod.vhdl}
 
 \subsection{Lecture des opérandes}
 
@@ -409,7 +408,7 @@ L'exécution d'une instruction nécéssite de récupérer la valeur de certains 
 effectuer une opération dessus (ce sera EXE qui la fera). DECOD doit se charger
 de lire les registres nécéssaires depuis le banc de registres pour fournir leurs valeurs à EXE.
 
-Pour cela, nous placerons 3 ports de lecture dans REG (3 car les instruction ont besoin de
+Pour cela, nous placerons 3 ports de lecture dans REG (3 car les instructions ont besoin de
 connaître au maximum les valeurs de 3 registres). La lecture se fera au sein d'un même cycle d'horloge
 car tout ce que fait DECOD doit se faire en un cycle.
 
@@ -425,11 +424,11 @@ Aucune instruction ne lit Rd et Rs en même temps, donc il n'y aura pas de confl
 Puis le numéro des registres Rn, Rm, Rd et Rs est données dans \texttt{if\_ir}, encore selon la doc ARM :
 \begin{enumerate}
   \item Rd est donné dans les bits 15 à 12 (sauf pour le mult ou c'est de 19 à 15)
-  \item Rn -> \texttt{if\_ir(19:16)} sauf pour les mult où c'est \texttt{if\_ir(15:12)}
-  \item Rm -> \texttt{if\_ir(3:0)}
-  \item Rs -> \texttt{if\_ir(11:8)}
+  \item Rn : \texttt{if\_ir(19:16)} sauf pour les mult où c'est \texttt{if\_ir(15:12)}
+  \item Rm : \texttt{if\_ir(3:0)}
+  \item Rs : \texttt{if\_ir(11:8)}
 \end{enumerate}
-Il suffit de récupérer ces champs et de les donner en adresse à REG pour obtenir nos valeurs de registres :
+Il suffit de récupérer ces champs et de les donner en adresse à REG pour obtenir nos valeurs de registres.
 
 %code : les radr
 \lstinputlisting[language=vhdl, firstline=759, lastline=770]{decod.vhdl}
@@ -438,7 +437,7 @@ Il suffit de récupérer ces champs et de les donner en adresse à REG pour obte
 
 Une fois les opérandes lues, il s'agit de les envoyer vers EXE ainsi que les détails
 sur l'opération à effectuer, c'est à dire les signaux :
-\begin{enumerate}
+\begin{itemize}
   \item \texttt{alu\_dest}
   \item \texttt{op1}
   \item \texttt{op2}
@@ -452,13 +451,15 @@ sur l'opération à effectuer, c'est à dire les signaux :
   \item \texttt{shift\_ror}
   \item \texttt{shift\_rrx}
   \item \texttt{shift\_val}
-\end{enumerate}
+\end{itemize}
 
-Nous nous concentrerons sur le cas des regops.
+Nous nous concentrerons sur les regops.
 
 \texttt{alu\_dest} sera Rd, c'est à dire \texttt{if\_ir(15:12)}.
-op1 sera la valeur de Rn, (port 1 de REG)
-op2 sera soit la valeur de Rm (port 2 de REG), soit un immediat (\texttt{if\_ir(7 downto 0)} zero-extended)
+
+\texttt{op1} sera la valeur de Rn, (port 1 de REG)
+
+\texttt{op2} sera soit la valeur de Rm (port 2 de REG), soit un immediat (\texttt{if\_ir(7 downto 0)} zero-extended)
 
 Quant à \texttt{alu\_cmd}, \texttt{alu\_cy}, \texttt{comp\_op1} et \texttt{comp\_op2},
 leur valeur dépend de l'instruction en question,
@@ -521,7 +522,8 @@ On a un ROR si l'opérande 2 est un immédiat ou si c'est un register mais que l
 
 Une fois que l'instruction est envoyée, les étages suivant la reçoivent et produisent un résultat.
 Ce résultat doit ensuite être stocké dans le banc de registre et pour cela, nous ajoutons dans DEC
-les entrées res (le résultat produit), dest (le numéro du registre où écrire) et wb (s'il faut écrire
+les entrées \texttt{res} (le résultat produit), \texttt{dest} (le numéro du registre où écrire)
+et \texttt{wb} (s'il faut écrire
 ou non) pour le résultat de EXE, le résultat de MEM et les flags :
 
 \begin{itemize}
@@ -550,6 +552,7 @@ Pour cela, nous utiliserons un mécanisme d'invalidation des registres et flags 
 lorsqu'une instruction compte écrire dans un registre, elle l'invalide dans DECOD
 et le revalide lorsqu'elle écrit le résultat dans REG, et une instruction ne se lance
 seulement si tous les registres et flags qu'elle lit sont valides, autrement elle reste gelée dans DEC.
+Cela règle les problèmes d'exécution dus aux dépendances RAW non respectées.
 
 \subsubsection{Validité du prédicat}
 Le prédicat est valide si et seulement si tous les flags qu'elle vérifie sont valides,
@@ -627,7 +630,7 @@ D'où le code suivant :
 
 Les flags à invalider sont les flags écrits, et pour les regops les flags écrits
 sont $\tt{c}$, $\tt{z}$, $\tt{n}$ pour les instructions logiques
-ou $\tt{c}$, $\tt{z}$, $\tt{n}$, $\tt{v pour}$ les
+ou $\tt{c}$, $\tt{z}$, $\tt{n}$, $\tt{v}$ pour les
 instructions arithmétiques.
 Les flags sont écrits seulement si le bit S ($\tt{if\_ir}$(20)) est à 1, à l'exception des instructions
 $\tt{TST}$, $\tt{TEQ}$, $\tt{CMP}$ Et $\tt{CMN}$ qui considèrent
@@ -688,7 +691,82 @@ $\tt{add}$.
 Pour cela, nous avons ajouté pour chaque port de lecture un flag $\tt{wbk}$ passant à 1 pendant un cycle
 si le registre en question a été écrit, ainsi on considère un registre valide si son flag $\tt{valid}$
 est à 1 où si son flag $\tt{wbk}$ est à 1.
- 
+
+\subsection{Mécanisme de gestion des états de DECOD}
+
+Jusqu'alors, nous avons vu DECOD dans son fonctionnement normal : une instruction arrive de IFETCH,
+est décodés puis envoyés, mais DECOD peut se trouver dans des situations différentes, par exemple :
+DECOD pourra être en train de geler en attendant la validation d'un registre,
+lorsque nous implémenterons les branchements DECOD pourra être dans un état spécial où le PC ne s'incrémente
+plus et devra attendre la validité du registre R15 pour continuer, pour les transferts multiples
+DECOD devra entrer dans une boucle de lancement d'instruction de transferts simples...
+=> A chaque cycle, DECOD sera dans une certaine situation et devra adopter un certain comportement en conséquence,
+et la manière canonique de gérer la multiplicité de ces situations, de ces états, est via une machine à états.
+
+\begin{itemize}
+ \item L'état "normal" de fonctionnement, que nous avons vu jusqu'alors, sera appelé l'état RUN.
+ \item Ensuite, un deuxième état FETCH est associé au cas où PC n'est pas valide
+   (cela arrive après un branch ou au démarrage) car dans ce cas le comportement de DECOD doit changer,
+   le PC ne s'incrémente plus et n'est plus envoyé vers IFETCH.
+\end{itemize}
+
+Puis pour gérer le gel, lors d'un cycle de gel la machine reste à l'état RUN mais ne lance pas l'instruction
+vers EXE. Ainsi l'instruction reste dans DECOD, en attendant la validité des opérandes.
+Cela aboutit à une première machine à états en Figure \ref{mae_part}.
+
+\begin{figure}[H]
+\includegraphics[width=0.75\textwidth]{pics/mae_part.png}
+\centering
+\caption{Un premier schema de la machine à états}
+\label{mae_part}
+\end{figure}
+
+
+Pour l'instant ces deux états suffisent à l'implémentation des regops, mais par la suite,
+nous ajouterons les états suivants :
+\begin{itemize}
+ \item l'état BRANCH dans lequel DECOD annulera l'execution des instruction déja chargées dans le pipeline
+       et lancera le calcul du nouveau PC.
+       \textit{Comme un nouveau PC est calculé, il a été invalidé donc on retourne à l'état FETCH où on attendra
+       la revalidation de PC.}
+ \item L'état LINK dans lequel DECOD lancera et attendra le calcul de l'adresse de retour avant de branch
+       \textit{Une fois que le LINK est fait on peut brancher, donc on passera à l'état BRANCH}
+ \item L'été MTRANS dans lequel DECOD restera en boucle à envoyer toutes les instructions de transfert simples
+       contenues dans le transfert multiple.
+       \textit{Une fois qu'on a terminé on retourne simplement à l'état normal RUN, sauf si le transfert multiple a
+       modifié R15 auquel cas on passe à l'état BRANCH.}
+\end{itemize}
+
+Tous ces éléments aboutissent à la machine a états en Figure \ref{mae}.
+
+\begin{figure}[H]
+\includegraphics[width=0.75\textwidth]{pics/mae.png}
+\centering
+\caption{Schema final de la machine à états}
+\label{mae}
+\end{figure}
+
+\subsection{Résumé de DECOD}
+
+Tous ce que nous avons vu sur la modélisation de DECOD mène au schema en Figure \ref{dec}.
+
+\begin{figure}[H]
+\includegraphics[width=0.75\textwidth]{pics/dec.png}
+\centering
+\caption{Schema final de l'étage DECOD} 
+\label{dec}
+\end{figure}
+
+\section{Bilan}
+
+Jusqu'ici, nous en sommes à l'étape de Modélisation, nous avons modélisé l'intégralité de l'étage EXE
+et le socle de base de l'étage DECOD, ainsi que l'implémentation des instructions de data processing dans DECOD.
+Pour remplir le cahier des charges, il nous restera à implémenter les instructions de branchements, de
+transferts mémoires simples et multiples, puis il reste les étapes de Synthèse, Placement et Routage.
+
+Une fois que cela sera implémenté, pour aboutir à un processeur capable d'exécuter un système d'exploitation
+(une distribution de Linux par exemple), il restera des fonctionnalités à implémenter comme par exemple
+un mécanisme de gestion de la mémoire virtuelle, des bypass ou encore la gestion d'interruption.
 
 %==================================================================================================
 %=========================  End of the Document  ==================================================

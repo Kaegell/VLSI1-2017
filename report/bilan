@@ -411,7 +411,52 @@ Pour cela, nous avons ajouté pour chaque port de lecture un flag wbk passant à
 si le registre en question a été écrit, ainsi on considère un registre valide si son flag valid est à 1
 où si son flag wbk est à 1.
   
+-- Mécanisme de gestion des états de DECOD ----------------
+
+Jusqu'alors, nous avons vu DECOD dans son fonctionnement normal : une instruction arrive de IFETCH,
+est décodés puis envoyés, mais DECOD peut se trouver dans des situations différentes, par exemple :
+DECOD pourra être en train de geler en attendant la validation d'un registre,
+lorsque nous implémenterons les branchements DECOD pourra être dans un état spécial où le PC ne s'incrémente
+plus et devra attendre la validité du registre R15 pour continuer, pour les transferts multiples
+DECOD devra entrer dans une boucle de lancement d'instruction de transferts simples...
+=> A chaque cycle, DECOD sera dans une certaine situation et devra adopter un certain comportement en conséquence,
+et la manière canonique de gérer la multiplicité de ces situations, de ces états, est via une machine à états.
+
+ - L'état "normal" de fonctionnement, que nous avons vu jusqu'alors, sera appelé l'état RUN.
+ - Ensuite, un deuxième état FETCH est associé au cas où PC n'est pas valide
+   (cela arrive après un branch ou au démarrage) car dans ce cas le comportement de DECOD doit changer,
+   le PC ne s'incrémente plus et n'est plus envoyé vers IFETCH.
+
+Puis pour gérer le gel, lors d'un cycle de gel la machine reste à l'état RUN mais ne lance pas l'instruction
+vers EXE. Ainsi l'instruction reste dans DECOD, en attendant la validité des opérandes.
+Cela aboutit à une première machine à états en Figure ... .
+
+[ MAE partielle ]
+
+Pour l'instant ces deux états suffisent à l'implémentation des regops, mais par la suite,
+nous ajouterons les états suivants :
+ - l'état BRANCH dans lequel DECOD annulera l'execution des instruction déja chargées dans le pipeline
+   et lancera le calcul du nouveau PC.
+   Comme un nouveau PC est calculé, il a été invalidé donc on retourne à l'état FETCH où on attendra
+   la revalidation de PC.
+ - L'état LINK dans lequel DECOD lancera et attendra le calcul de l'adresse de retour avant de branch
+   Une fois que le LINK est fait on peut brancher, donc on passera à l'état BRANCH.
+ - L'été MTRANS dans lequel DECOD restera en boucle à envoyer toutes les instructions de transfert simples
+   contenues dans le transfert multiple.
+   Une fois qu'on a terminé on retourne simplement à l'état normal RUN, sauf si le transfert multiple a
+   modifié R15 auquel cas on passe à l'état BRANCH.
+
+Tous ces éléments aboutissent à la machine a états en Figure ... .
+
+[ MAE finale ]
   incrementation de pc
+
+
+-- Bilan de DECOD -----------------------------------------
+
+Tous ce que nous avons vu sur la modélisation de DECOD mène au schema en Figure ... .
+
+[ Schema de DECOD ]
 
 -------------------------------------------------------------------------------------------------------------------
 bilan :

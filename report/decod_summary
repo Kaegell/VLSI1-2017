@@ -29,28 +29,28 @@ SIGNAL DECLARATION
   FSM
 =============
 PREDICATE CONTROL
-  Predicate retrieving                    [ ]
-  Predicate validity                      [ ]
+  Predicate retrieving                    [X]
+  Predicate validity                      [X]
 INSTRUCTION DECODING
   Instruction type decoding               [X]
   Instruction decoding                    [X]
 OPERANDS
   Operand reading           (radr)        [X]
-  Operand validity checking (operv)       [ ]
+  Operand validity checking (operv)       [X]
 EXE
   Operands                                [X]
   ALU command                             [X]
   Inverter command                        [X]
-  Shifter command                         [ ]
-  Writeback                               [ ]
+  Shifter command                         [X]
+  Writeback                               [X]
 MEM
   Destination register                    [ ]
   Option (pre/post index)                 [ ]
   Data                                    [ ]
   Operation type                          [ ]
 INVALIDATION
-  Registers invalidation                  [ ]
-  Flags invalidation                      [ ]
+  Registers invalidation                  [X]
+  Flags invalidation                      [X]
 MULTIPLE TRANSFERTS
 FINITE STATE MACHINE
   Register process                        [ ]

@@ -396,6 +396,12 @@ La figure \ref{dec3} résume ce qu'il a dans DECOD pour l'instant.
 \label{dec3}
 \end{figure}
 
+\subsection{Vérification de la condition d'exécution}
+
+Le jeu ARM comporte une fonctionnalité d'execution conditionnelle,
+une instruction n'est lancée seulement si la condition sur les flags imposée
+par l'instruction est remplie. Il suffit de lire if\_ir pour connaître la condition
+et les flags pour savoir si elle est remplie.
 
 \subsection{Lecture des opérandes}
 
@@ -511,7 +517,178 @@ Le type de décalage est donné par \texttt{if\_ir(6:5)} mais dans le cas des ro
 il faut distinguer ROR et RRX dans le cas \texttt{if\_ir(6:5)} = \texttt{"11"} :
 On a un ROR si l'opérande 2 est un immédiat ou si c'est un register mais que le shift amount n'est pas nul.
 
+\subsection{Ecriture du résultat dans le banc de registre}
 
+Une fois que l'instruction est envoyée, les étages suivant la reçoivent et produisent un résultat.
+Ce résultat doit ensuite être stocké dans le banc de registre et pour cela, nous ajoutons dans DEC
+les entrées res (le résultat produit), dest (le numéro du registre où écrire) et wb (s'il faut écrire
+ou non) pour le résultat de EXE, le résultat de MEM et les flags :
+
+\begin{itemize}
+ \item \texttt{exe\_res}
+ \item \texttt{exe\_dest}
+ \item \texttt{exe\_wb}
+ \item
+ \item \texttt{exe\_c}
+ \item \texttt{exe\_n}
+ \item \texttt{exe\_z}
+ \item \texttt{exe\_v}
+ \item \texttt{exe\_flag\_wb}
+ \item
+ \item \texttt{mem\_res}
+ \item \texttt{mem\_dest}
+ \item \texttt{mem\_wb}
+\end{itemize}
+
+Par conséquent, le banc de registres prendra deux ports d'écriture (pour EXE et pour MEM)
+et un port pour les flags. Contrairement à la lecture, l'écriture dans REG se fera sur front d'horloge.
+
+\subsection{Mécanisme d'invalidation}
+
+Pour que l'étage DECOD soit fonctionnel, il reste à gérer le problème des dépendances.
+Pour cela, nous utiliserons un mécanisme d'invalidation des registres et flags :
+lorsqu'une instruction compte écrire dans un registre, elle l'invalide dans DECOD
+et le revalide lorsqu'elle écrit le résultat dans REG, et une instruction ne se lance
+seulement si tous les registres et flags qu'elle lit sont valides, autrement elle reste gelée dans DEC.
+
+\subsubsection{Validité du prédicat}
+Le prédicat est valide si et seulement si tous les flags qu'elle vérifie sont valides,
+et les flags vérifiés ou non dépendent de la condition d'execution elle-même.
+Le Tableau \ref{cond} détaille les flags utilisés en fonction de la condition d'execution
+et justifie le code qui assigne condv.
+
+\begin{table}[H]
+\centering
+\begingroup
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{ | c | c | c | c | }
+\hline
+Condition d'execution  & Condition sur les flags & Utilisation de c, z, n  & Utilisation de v \\
+\hline
+\tt{EQ}      & Z set                       & oui & non \\
+\hline
+\tt{NE}      & Z clear                     & oui & non \\
+\hline
+\tt{CS}      & C set                       & oui & non \\
+\hline
+\tt{CC}      & C clear                     & oui & non \\
+\hline
+\tt{MI}      & N set                       & oui & non \\
+\hline
+\tt{PL}      & N clear                     & oui & non \\
+\hline
+\tt{VS}      & V set                       & non & oui \\
+\hline
+\tt{VC}      & V clear                     & non & oui \\
+\hline
+\tt{HI}      & C set and Z clear           & oui & non \\
+\hline
+\tt{LS}      & C clear and Z set           & oui & non \\
+\hline
+\tt{GE}      & N equals V                  & oui & oui \\
+\hline
+\tt{LT}      & N not equal V               & oui & oui \\
+\hline
+\tt{GT}      & Z clear and (N equals V)    & oui & oui \\
+\hline
+\tt{LE}      & Z set or (N not equals V)   & oui & oui \\
+\hline
+\end{tabular}
+\endgroup
+\caption{Utilisation des flags en fonction de la condition d'exécition}
+\label{cond}
+\end{table}
+
+%[ code de condv ]
+\lstinputlisting[language=vhdl, firstline=547, lastline=555]{decod.vhdl}
+
+\subsubsection{Validité des opérandes}
+
+Une fois que le prédicat est valide, l'instruction peut être lancée seulement si toutes les opérandes
+qu'elle lit sont valides, et là encore les opérandes lues dépendent du type d'instruction.
+Pour les regops, Rn est toujours lu, Rm est lu si l'opérande 2 est de type registre,
+Rs est lu si le décalage est de type registre. D'où le code suivant :
+(pour l'instant seules les regops sont implémentées)
+
+%[ code de operv ]
+\lstinputlisting[language=vhdl, firstline=790, lastline=798]{decod.vhdl}
+
+\subsubsection{Invalidation des registres}
+
+Les registres invalidés sont les registres dans lesquels l'instruction écrit.
+Pour les regops, c'est Rd (sauf pour 4 instructions, qui ne font qu'écrire les flags).
+D'où le code suivant :
+
+%[ code de inval\_exe et inval\_exe\_adr ]
+\lstinputlisting[language=vhdl, firstline=803, lastline=811]{decod.vhdl}
+
+\subsubsection{Invalidation des flags}
+
+Les flags à invalider sont les flags écrits, et pour les regops les flags écrits
+sont $\tt{c}$, $\tt{z}$, $\tt{n}$ pour les instructions logiques
+ou $\tt{c}$, $\tt{z}$, $\tt{n}$, $\tt{v pour}$ les
+instructions arithmétiques.
+Les flags sont écrits seulement si le bit S ($\tt{if\_ir}$(20)) est à 1, à l'exception des instructions
+$\tt{TST}$, $\tt{TEQ}$, $\tt{CMP}$ Et $\tt{CMN}$ qui considèrent
+automatiquement que S est à 1.
+
+%[ code de inval\_czn et inval\_ovr ]
+\lstinputlisting[language=vhdl, firstline=818, lastline=828]{decod.vhdl}
+
+\subsubsection{Gestion de la validité dans REG}
+
+Dans le banc de registres, la validité d'un registre/flag est gérée de la manière suivante :
+Pour chaque registre/flag correspond une commande $\tt{inval}$ et $\tt{write}$
+pour l'invalider ou l'écrire
+(et donc la revalider), la valeur de ces deux commandes déterminera la validité du registre
+au cycle suivant, comme indiqué dans le Tableau \ref{valid} .
+
+\begin{table}[H]
+\centering
+\begingroup
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{ | c | c | c | }
+\hline
+$\tt{inval}$(t) & $\tt{write}$(t)  & $\tt{valid}$(t+1) \\
+\hline
+0  & 0  & $\tt{valid}$(t) \\
+0  & 1  & 0        \\
+1  & 0  & 1        \\
+1  & 1  & 1        \\
+\hline
+\end{tabular}
+\endgroup
+\caption{Détermination de la validité d'un registre au cycle $t+1$}
+\label{valid}
+\end{table}
+
+
+Lorsque $\tt{inval}$ et $\tt{write}$ sont tous les deux à 1,
+une instruction écrit son résultat
+dans le registre mais cela ne change rien au fait que l'instruction en cours écrira dedans
+et que les instructions suivantes devront attendre si elles veulent le lire, donc on
+invalide quand même le registre.
+Un problème est que si le registre actuel lit et écrit le même registre, comme
+dans l'exemple suivant :
+
+%[ code ] mov R4, #0; add R4, R4, #1
+\begin{lstlisting}
+  mov R4, #0
+  add R4, R4, #1
+\end{lstlisting}
+
+Au cycle où $\tt{add}$ est dans DEC (et $\tt{mov}$ dans EXE),
+$\tt{R4}$ sera écrit et invalidé sauf que notre
+implémentation fait prévaloir l'invalidation donc $\tt{R4}$ sera invalide au cycle suivant,
+$\tt{add}$ restera donc indéfiniment gelée dans DEC,
+attendant une revalidation qu'elle ne verra jamais car elle aura été écrasée par l'invalidation de
+$\tt{add}$.
+Pour cela, nous avons ajouté pour chaque port de lecture un flag $\tt{wbk}$ passant à 1 pendant un cycle
+si le registre en question a été écrit, ainsi on considère un registre valide si son flag $\tt{valid}$
+est à 1 où si son flag $\tt{wbk}$ est à 1.
+ 
 
 %==================================================================================================
 %=========================  End of the Document  ==================================================

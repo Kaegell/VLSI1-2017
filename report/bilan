@@ -249,7 +249,14 @@ La figure ... résume ce qu'il a dans DECOD pour l'instant.
 
 [ Figure ]
 
--- Lecture des opérandes ---------------------
+--------- Verification de la condition d'execution --
+
+Le jeu ARM comporte une fonctionnalité d'execution conditionnelle,
+une instruction n'est lancée seulement si la condition sur les flags imposée
+par l'instruction est remplie. Il suffit de lire if_ir pour connaître la condition
+et les flags pour savoir si elle est remplie.
+
+--------- Lecture des opérandes ---------------------
 
 L'exécution d'une instruction nécéssite de récupérer la valeur de certains registres pour
 effectuer une opération dessus (ce sera EXE qui la fera). DECOD doit se charger
@@ -275,7 +282,7 @@ Il suffit de récupérer ces champs et de les donner en adresse à REG pour obte
 
 code : radr
 
--- Envoi de l'opération à EXE ----------------
+--------- Envoi de l'opération à EXE ----------------
 
 Une fois les opérandes lues, il s'agit de les envoyer vers EXE ainsi que les détails
 sur l'opération à effectuer, c'est à dire les signaux :
@@ -308,6 +315,103 @@ Enfin, il faut spécifier quel décalage appliquer à l'opérande 2.
 Le type de décalage est donné par if_ir(6:5) mais dans le cas des rotations,
 il faut distinguer ROR et RRX dans le cas if_ir(6:5) = "11" :
 On a un ROR si l'opérande 2 est un immédiat ou si c'est un register mais que le shift amount n'est pas nul.
+
+---------- Ecriture du résultat dans le banc de registre (write back) --
+
+Une fois que l'instruction est envoyée, les étages suivant la reçoivent et produisent un résultat.
+Ce résultat doit ensuite être stocké dans le banc de registre et pour cela, nous ajoutons dans DEC
+les entrées res (le résultat produit), dest (le numéro du registre où écrire) et wb (s'il faut écrire
+ou non) pour le résultat de EXE, le résultat de MEM et les flags :
+
+ - exe_res
+ - exe_dest
+ - exe_wb
+
+ - exe_c
+ - exe_n
+ - exe_z
+ - exe_v
+ - exe_flag_wb
+
+ - mem_res
+ - mem_dest
+ - mem_wb
+
+Par conséquent, le banc de registres prendra deux ports d'écriture (pour EXE et pour MEM)
+et un port pour les flags. Contrairement à la lecture, l'écriture dans REG se fera sur front d'horloge.
+
+--------- Mecanisme d'invalidation ------------------------------------
+
+Pour que l'étage DECOD soit fonctionnel, il reste à gérer le problème des dépendances.
+Pour cela, nous utiliserons un mécanisme d'invalidation des registres et flags :
+lorsqu'une instruction compte écrire dans un registre, elle l'invalide dans DECOD
+et le revalide lorsqu'elle écrit le résultat dans REG, et une instruction ne se lance
+seulement si tous les registres et flags qu'elle lit sont valides, autrement elle reste gelée dans DEC.
+
+---- Validite du predicat -----------
+Le prédicat est valide si et seulement si tous les flags qu'elle vérifie sont valides,
+et les flags vérifiés ou non dépendent de la condition d'execution elle-même.
+Le Tableau ... détaille les flags utilisés en fonction de la condition d'execution
+et justifie le code qui assigne condv.
+
+[ Tableau ] Regop  |  Condition sur les flags  | c, z, n sont utilises  | v est utilise
+
+[ code de condv ]
+
+---- Validite des operandes ---------
+
+Une fois que le prédicat est valide, l'instruction peut être lancée seulement si toutes les opérandes
+qu'elle lit sont valides, et là encore les opérandes lues dépendent du type d'instruction.
+Pour les regops, Rn est toujours lu, Rm est lu si l'opérande 2 est de type registre,
+Rs est lu si le décalage est de type registre. D'où le code suivant :
+(pour l'instant seules les regops sont implémentées)
+
+[ code de operv ]
+
+---- Invalidation des registres -----
+
+Les registres invalidés sont les registres dans lesquels l'instruction écrit.
+Pour les regops, c'est Rd (sauf pour 4 instructions, qui ne font qu'écrire les flags).
+D'où le code suivant :
+
+[ code de inval_exe et inval_exe_adr ]
+
+---- Invalidation des flags ---------
+
+Les flags à invalider sont les flags écrits, et pour les regops les flags écrits
+sont c, z, n pour les instructions logiques ou c, z, n, v pour les instructions arithmétiques.
+Les flags sont écrits seulement si le bit S (if_ir(20)) est à 1, à l'exception des instructions
+TST, TEQ, CMP Et CMN qui considèrent automatiquement que S est à 1.
+
+[ code de inval_czn et inval_ovr ]
+
+---- Gestion de la validite dans REG-
+
+Dans le banc de registres, la validité d'un registre/flag est gérée de la manière suivante :
+Pour chaque registre/flag correspond une commande inval et write pour l'invalider ou l'écrire
+(et donc la revalider), la valeur de ces deux commandes déterminera la validité du registre
+au cycle suivant, comme indiqué dans le Tableau ... .
+
+[ Tableau ] inval  |  write  |  valid
+
+Lorsque inval et write sont tous les deux à 1, une instruction écrit son résultat
+dans le registre mais cela ne change rien au fait que l'instruction en cours écrira dedans
+et que les instructions suivantes devront attendre si elles veulent le lire, donc on
+invalide quand même le registre.
+Un problème est que si le registre actuel lit et écrit le même registre, comme
+dans l'exemple suivant :
+
+[ code ] mov R4, #0; add R4, R4, #1
+
+Au cycle où add est dans DEC (et mov dans EXE), R4 sera écrit et invalidé sauf que notre
+implémentation fait prévaloir l'invalidation donc R4 sera invalide au cycle suivant,
+add restera donc indéfiniment gelée dans DEC,
+attendant une revalidation qu'elle ne verra jamais car elle aura été écrasée par l'invalidation de add.
+Pour cela, nous avons ajouté pour chaque port de lecture un flag wbk passant à 1 pendant un cycle
+si le registre en question a été écrit, ainsi on considère un registre valide si son flag valid est à 1
+où si son flag wbk est à 1.
+  
+  incrementation de pc
 
 -------------------------------------------------------------------------------------------------------------------
 bilan :

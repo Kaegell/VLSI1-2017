@@ -801,18 +801,12 @@ begin
 -- =============================================================================
 
 ------------------------- Registers Invalidation -------------------------------
-  -- The destination register is always Rd
   inval_exe_adr <=  if_ir(19 downto 16)   when mult_t = '1'        else
-                 -- else  x"F"                  when branch_t = '1'
-                 -- (we'll take care of branches later...)
                     if_ir(15 downto 12);
 
   inval_exe     <=  '1' when ( regop_t = '1' and
                         not (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') )
                         else 
-                        -- or
-                        -- branch_t = '1'
-                        -- (we'll take care of branches later...)
                     '0';
 
   inval_mem_adr <=  if_ir(15 downto 12)   when trans_t = '1'         else
@@ -822,15 +816,16 @@ begin
                    '0';
 
 ------------------------- Flags Invalidation -----------------------------------
-  inval_czn     <= '1'  when regop_t = '1' and
-                        (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') else
-                   if_ir(20);  -- S flag
+  inval_czn <= '1'       when regop_t = '1' and
+                         (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1')
+          else if_ir(20);
+
+	inval_ovr <= '1'       when regop_t = '1' and
+                         (teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1') and
+                         alu_cmd = "00"
+          else if_ir(20) when alu_cmd = "00"
+          else '0';
 			
-
-  inval_ovr     <= if_ir(20)   when regop_t = '1' and not(
-                               teq_i='1' or tst_i='1' or cmp_i='1' or cmn_i='1')
-             else  '0';
-
 -- =============================================================================
 -- == @@ ==========  Multiple Transferts  ======================================
 -- =============================================================================

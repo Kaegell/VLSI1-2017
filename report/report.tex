@@ -125,7 +125,7 @@ des traitement devant être effectués par le processeur pour pouvoir exécuter 
 et la répartition de ces traitement entre les différents étages, ceci est détaillé en Figure \ref{etages}.
 
 \begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/etages.png}
+\includegraphics[width=0.75\textwidth]{pics/blank.png}
 \centering
 \caption{Découpage en étages du processeur}
 \label{etages}
@@ -216,13 +216,13 @@ doivent être calculés, on a donc en plus :
   \item Calcul des flags de sortie
 \end{enumerate}
 
-Avec ces 5 éléments, nous aboutissons au schema Figure \ref{exe} pour EXE.
+Avec ces 5 éléments, nous aboutissons au schema Figure \ref{exe_part} pour EXE.
 
 \begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/exe.png}
+\includegraphics[width=0.75\textwidth]{pics/exe_part.png}
 \centering
-\caption{Schema de l'étage EXE}
-\label{exe}
+\caption{Schema partiel de l'étage EXE}
+\label{exe_part}
 \end{figure}
 
 \subsection{Modélisation de l'ALU}
@@ -294,13 +294,13 @@ l'ALU réalise une addition ou autre chose.
 Lors d'un accès mémoire, le jeu ARM offre la possibilité de choisisr si l'adresse prise en compte
 pour un accès mémoire est l'adresse \texttt{base} ou l'adresse \texttt{base + offset}.
 Dans EXE, cela équivaut à choisir entre l'opérande 2 et le résultat en sortie d'ALU,
-cela mène au schema en Figure \ref{exe2}.
+cela mène au schema en Figure \ref{exe}.
 
 \begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/exe2.png}
+\includegraphics[width=0.75\textwidth]{pics/exe.png}
 \centering
 \caption{Schema amélioré de EXE}
-\label{exe2}
+\label{exe}
 \end{figure}
 
 %==================== Modelisation de l'etage DEC =================================================
@@ -695,19 +695,23 @@ est à 1 où si son flag $\tt{wbk}$ est à 1.
 \subsection{Mécanisme de gestion des états de DECOD}
 
 Jusqu'alors, nous avons vu DECOD dans son fonctionnement normal : une instruction arrive de IFETCH,
-est décodés puis envoyés, mais DECOD peut se trouver dans des situations différentes, par exemple :
+est décodée puis envoyée, mais DECOD peut se trouver dans des situations différentes, par exemple :
 DECOD pourra être en train de geler en attendant la validation d'un registre,
 lorsque nous implémenterons les branchements DECOD pourra être dans un état spécial où le PC ne s'incrémente
 plus et devra attendre la validité du registre R15 pour continuer, pour les transferts multiples
 DECOD devra entrer dans une boucle de lancement d'instruction de transferts simples...
-=> A chaque cycle, DECOD sera dans une certaine situation et devra adopter un certain comportement en conséquence,
-et la manière canonique de gérer la multiplicité de ces situations, de ces états, est via une machine à états.
+
+\textbf{Ainsi à chaque cycle, DECOD sera dans une certaine situation et devra adopter un certain
+comportement en conséquence, et la manière canonique de gérer la multiplicité de ces situations,
+de ces états, est via une machine à états.}
 
 \begin{itemize}
  \item L'état "normal" de fonctionnement, que nous avons vu jusqu'alors, sera appelé l'état RUN.
  \item Ensuite, un deuxième état FETCH est associé au cas où PC n'est pas valide
    (cela arrive après un branch ou au démarrage) car dans ce cas le comportement de DECOD doit changer,
    le PC ne s'incrémente plus et n'est plus envoyé vers IFETCH.
+
+   \textit{On reviendra à l'état RUN une fois que le PC sera valide.}
 \end{itemize}
 
 Puis pour gérer le gel, lors d'un cycle de gel la machine reste à l'état RUN mais ne lance pas l'instruction
@@ -715,7 +719,7 @@ vers EXE. Ainsi l'instruction reste dans DECOD, en attendant la validité des op
 Cela aboutit à une première machine à états en Figure \ref{mae_part}.
 
 \begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/mae_part.png}
+\includegraphics[width=0.75\textwidth]{pics/blank.png}
 \centering
 \caption{Un premier schema de la machine à états}
 \label{mae_part}
@@ -727,12 +731,15 @@ nous ajouterons les états suivants :
 \begin{itemize}
  \item l'état BRANCH dans lequel DECOD annulera l'execution des instruction déja chargées dans le pipeline
        et lancera le calcul du nouveau PC.
+
        \textit{Comme un nouveau PC est calculé, il a été invalidé donc on retourne à l'état FETCH où on attendra
        la revalidation de PC.}
  \item L'état LINK dans lequel DECOD lancera et attendra le calcul de l'adresse de retour avant de branch
+
        \textit{Une fois que le LINK est fait on peut brancher, donc on passera à l'état BRANCH}
- \item L'été MTRANS dans lequel DECOD restera en boucle à envoyer toutes les instructions de transfert simples
+ \item L'état MTRANS dans lequel DECOD restera en boucle à envoyer toutes les instructions de transfert simples
        contenues dans le transfert multiple.
+
        \textit{Une fois qu'on a terminé on retourne simplement à l'état normal RUN, sauf si le transfert multiple a
        modifié R15 auquel cas on passe à l'état BRANCH.}
 \end{itemize}
@@ -740,7 +747,7 @@ nous ajouterons les états suivants :
 Tous ces éléments aboutissent à la machine a états en Figure \ref{mae}.
 
 \begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/mae.png}
+\includegraphics[width=0.75\textwidth]{pics/blank.png}
 \centering
 \caption{Schema final de la machine à états}
 \label{mae}
@@ -748,10 +755,10 @@ Tous ces éléments aboutissent à la machine a états en Figure \ref{mae}.
 
 \subsection{Résumé de DECOD}
 
-Tous ce que nous avons vu sur la modélisation de DECOD mène au schema en Figure \ref{dec}.
+Tout ce que nous avons vu sur la modélisation de DECOD mène au schema en Figure \ref{dec}.
 
 \begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/dec.png}
+\includegraphics[width=\textwidth]{pics/dec.png}
 \centering
 \caption{Schema final de l'étage DECOD} 
 \label{dec}

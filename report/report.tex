@@ -68,12 +68,12 @@ Le but de notre projet est de concevoir un processeur ARM, c'est à dire un proc
 %----------------- Processus de developpement -----------------------------------------------------
 \subsection{Processus de développement}
 
-La conception de ce processeur se fera en quatre grandes étapes :
+La conception de ce processeur se fera en cinq grandes étapes :
 
 \begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/conception.png}
+\includegraphics[width=0.75\textwidth]{pics/conception1.png}
 \centering
-\caption{Schema-bloc des étapes de conception du processeur} 
+\caption{Schema-bloc des étapes de conception du processeur}
 \label{conception}
 \end{figure}
 
@@ -83,7 +83,7 @@ La conception de ce processeur se fera en quatre grandes étapes :
                       du plus abstrait (description du comportement du circuit seulement)
                       au plus concret (schema des portes logiques du circuit)
                       \textit{Nous utiliserons le langage VHDL pour décrire notre modèle de processeur}
-\item \textbf{Simulation}    : Il s'agit de vérifier par la simulation que notre modèle est fonctionnel. 
+\item \textbf{Simulation}    : Il s'agit de vérifier par la simulation que notre modèle est fonctionnel.
                       \textit{Nous utiliserons le simulateur ghdl ainsi que des bancs de tests VHDL
                       et une plateforme de simulation d'exécution de programmes ASM et C pour cela.}
 \item \textbf{Synthèse} : Cette étape consiste à passer de notre modèle VHDL fonctionnel à une description
@@ -99,7 +99,7 @@ La Figure \ref{outils} résume le flot de travail et les outils utilisés pour l
 Placement et Routage.
 
 \begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/conception.png}
+\includegraphics[width=0.75\textwidth]{pics/conception2.png}
 \centering
 \caption{Outils utilisés pour la réalisation du processeur}
 \label{outils}
@@ -719,7 +719,7 @@ vers EXE. Ainsi l'instruction reste dans DECOD, en attendant la validité des op
 Cela aboutit à une première machine à états en Figure \ref{mae_part}.
 
 \begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/blank.png}
+\includegraphics[width=0.75\textwidth]{pics/mae_part.png}
 \centering
 \caption{Un premier schema de la machine à états}
 \label{mae_part}
@@ -747,7 +747,7 @@ nous ajouterons les états suivants :
 Tous ces éléments aboutissent à la machine a états en Figure \ref{mae}.
 
 \begin{figure}[H]
-\includegraphics[width=0.75\textwidth]{pics/blank.png}
+\includegraphics[width=0.75\textwidth]{pics/mae.png}
 \centering
 \caption{Schema final de la machine à états}
 \label{mae}
@@ -760,7 +760,7 @@ Tout ce que nous avons vu sur la modélisation de DECOD mène au schema en Figur
 \begin{figure}[H]
 \includegraphics[width=\textwidth]{pics/dec.png}
 \centering
-\caption{Schema final de l'étage DECOD} 
+\caption{Schema final de l'étage DECOD}
 \label{dec}
 \end{figure}
 

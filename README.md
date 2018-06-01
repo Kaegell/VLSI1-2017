@@ -1,4 +1,7 @@
+# VLSI-2017
+Hardware Description of an ARMv1 processor from scratch using the [ARM programming guide](https://www.scss.tcd.ie/~waldroj/3d1/arm_arm.pdf)
 
+Hardware Description written in VHDL by Kevin Mambu and Nicolas Phan
 ## Branch organization
     1. Each contributor has their own branch (to prevent merge conflicts)
     2. Each commit/merge to the branch 'master' shall be discussed beforehand
